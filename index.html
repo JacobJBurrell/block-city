@@ -28,7 +28,7 @@ canvas#g{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
 <body><div id="hud"><div id="cash">$0</div><div id="cn">● 0</div><div id="clock"></div><div id="kills">✖ 0</div></div><div id="xh"></div><div id="dmg"></div><div id="stars"></div><div id="bars"><div><div id="hpb"></div></div><div><div id="arb"></div></div></div><div id="lock"></div>
 <canvas id="map" width="260" height="260"></canvas><div id="mission"></div>
 <div id="stick"><div id="knob"></div></div><div id="jump" class="btn">JUMP</div><div id="car" class="btn">CAR</div><div id="fire" class="btn">FIRE</div><div id="wpn" class="btn">PISTOL</div><div id="toast"></div>
-<div id="msg"><h1>BLOCK CITY</h1><p style="opacity:.7;font-size:12px">version 17</p><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
+<div id="msg"><h1>BLOCK CITY</h1><p style="opacity:.7;font-size:12px">version 18</p><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/DRACOLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/SkeletonUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/FXAAShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 if(!window.THREE){document.getElementById('msg').innerHTML='<h1>No internet</h1><p>Connect once so the 3D engine can load.</p>'}else{
@@ -654,7 +654,7 @@ function rlLife(a,dt,s){const g=a.g,u=g.userData,B=a.B;if(!B||!B.Head)return;
  if(u.rlTilt)rlTwist(B.Head,rlF,u.rlTilt*.5);
  a.blT-=dt;if(a.blT<=0){a.blT=2+Math.random()*4.5;a.bl=.16}
  if(a.bl>0){a.bl-=dt;const c=Math.sin(Math.max(0,a.bl)/.16*Math.PI);rlTwist(B.LEyeBlinkTop,rlR,-c*rlBlinkA);rlTwist(B.REyeBlinkTop,rlR,-c*rlBlinkA);rlTwist(B.LEyeBlinkBottom,rlR,c*rlBlinkA*.3);rlTwist(B.REyeBlinkBottom,rlR,c*rlBlinkA*.3)}}
-let rlBlinkA=.55;
+let rlBlinkA=.45;
 function rlTick(dt){chTick(dt);rlSeatDriver();rlT-=dt;if(rlT<=0){rlT=.35;try{rlSelect()}catch(e){console.log('rl',e)}}
  rlGpuT-=dt;if(rlGpuT<=0){rlGpuT=5;try{rlGpuTrim()}catch(e){}}
  for(const a of rlLive){const g=a.g,u=g.userData,C=a.C,seat=u.rlSeat,dead=!seat&&g.rotation.x<-1,air=g===player&&!onGround;
@@ -727,7 +727,7 @@ function chPlace(){if(chPlaced)return;chPlaced=true;const s=window.chSpawn||chSe
 addEventListener('bc-play',()=>{chClose();chPlace()});
 // ---------- character screen UI ----------
 const chCss=document.createElement('style');chCss.textContent=
- '#chBtn{position:fixed;z-index:120;right:calc(env(safe-area-inset-right,0px) + 14px);top:calc(env(safe-area-inset-top,0px) + 14px);display:none;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:999px;background:rgba(14,16,22,.62);border:1px solid rgba(255,255,255,.18);color:#fff;font:600 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.12em;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.35);cursor:pointer}'
+ '#chBtn{position:fixed;z-index:120;left:calc(env(safe-area-inset-left,0px) + 14px);top:calc(env(safe-area-inset-top,0px) + 62px);display:none;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:999px;background:rgba(14,16,22,.62);border:1px solid rgba(255,255,255,.18);color:#fff;font:600 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.12em;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.35);cursor:pointer}'
 +'#chBtn i{width:30px;height:30px;border-radius:50%;background:linear-gradient(160deg,#ffe28a,#f0a800);display:flex;align-items:center;justify-content:center;font-style:normal;color:#14161c;font-weight:900;font-size:13px;letter-spacing:0}'
 +'#chBtn small{display:block;opacity:.6;font-size:9px;letter-spacing:.08em;margin-top:1px;font-weight:500}'
 +'#chOv{position:fixed;inset:0;z-index:210;display:none;color:#fff;font:500 13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 30% 40%,rgba(30,36,52,.92),rgba(6,8,12,.97) 70%);-webkit-user-select:none;user-select:none}'
@@ -746,7 +746,8 @@ const chCss=document.createElement('style');chCss.textContent=
 +'#chOv .ch-sw.on{border-color:#ffd23f;box-shadow:0 0 0 3px rgba(255,210,63,.25)}#chOv .ch-sw.org{background:conic-gradient(#999,#555,#999);}#chOv .ch-sw.org:after{content:"";position:absolute;left:4px;right:4px;top:50%;height:2px;background:#fff;transform:rotate(-45deg);opacity:.8}'
 +'#chOv .ch-in{height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font:600 14px -apple-system,sans-serif;padding:0 12px;outline:none;-webkit-user-select:text;user-select:text;width:100%;box-sizing:border-box}'
 +'#chOv .ch-chip{padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);font-size:11.5px;font-weight:600}#chOv .ch-chip.on{background:rgba(255,210,63,.18);border-color:#ffd23f;color:#ffe9a0}'
-+'#chOv .ch-done{margin-top:12px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.3em;text-indent:.3em;color:#12141a;background:linear-gradient(180deg,#fff0b8,#ffd23f 48%,#f0a800);box-shadow:0 12px 30px rgba(255,190,40,.25)}'
++'#chOv .ch-done{position:sticky;bottom:0;flex:0 0 auto;margin-top:12px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.3em;text-indent:.3em;color:#12141a;background:linear-gradient(180deg,#fff0b8,#ffd23f 48%,#f0a800);box-shadow:0 12px 30px rgba(255,190,40,.25)}'
++'@media (orientation:landscape){#chBtn{left:auto;right:calc(env(safe-area-inset-right,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 8px);padding:6px 12px 6px 6px}#chBtn small{display:none}#chBtn i{width:26px;height:26px}}'
 +'@media (orientation:portrait){#chOv .ch-wrap{flex-direction:column}#chOv .ch-pv{flex:0 0 46%}#chOv .ch-side{flex:1 1 auto}}';
 document.head.appendChild(chCss);
 const chBtn=document.createElement('div');chBtn.id='chBtn';document.body.appendChild(chBtn);
@@ -767,15 +768,19 @@ function chRender(){const c=chChoice(),sp=chMode==='title'?chSpawns():[],cur=(ch
 function chOpen(mode){if(chOpenF)return;chMode=mode||'title';chOpenF=true;if(chMode!=='title'){chPrevState=state;state='chmenu'}chOv.style.display='block';chRender();requestAnimationFrame(chPvLoop)}
 function chClose(){if(!chOpenF)return;chOpenF=false;chOv.style.display='none';chPvClose();const a=document.activeElement;if(a&&a.blur)a.blur();chSave();chRefresh();if(chMode==='title')chSetSpawn();else if(state==='chmenu')state=chPrevState||'play';chBtnSync()}
 chBtn.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();chOpen('title')},{passive:false});chBtn.addEventListener('mousedown',e=>e.stopPropagation());
-chOv.addEventListener('touchstart',e=>{e.stopPropagation();const t=e.changedTouches&&e.changedTouches[0],tg=t&&t.target&&t.target.closest?t.target:e.target;
- if(tg&&tg.classList&&tg.classList.contains('ch-in')){tg.focus();return}if(e.cancelable)e.preventDefault();
- if(tg&&tg.tagName==='CANVAS'){chDrag={x:t.clientX,id:t.identifier};if(chPv)chPv.auto=false;return}
- const a=tg&&tg.closest?tg.closest('[data-a]'):null;if(!a)return;const k=a.getAttribute('data-a');
- if(k==='close')chClose();else if(k==='prev'||k==='next'){const i=chChoices.indexOf(chChoice()),n=chChoices[(i+(k==='next'?1:chChoices.length-1))%chChoices.length];chS.k=n.k;chS.top=chS.bot=chS.shoe=-1;rlWant(n.k,true);chSave();chRender()}
+function chAction(a){const k=a.getAttribute('data-a');
+ if(k==='close')chClose();else if(k==='prev'||k==='next'){const i=chChoices.indexOf(chChoice()),n=chChoices[(i+(k==='next'?1:chChoices.length-1))%chChoices.length];chS.k=n.k;chS.top=chS.bot=chS.shoe=-1;rlWant(n.k,true);chSave();const sc=chOv.querySelector('.ch-side'),st=sc?sc.scrollTop:0;chRender();const s2=chOv.querySelector('.ch-side');if(s2)s2.scrollTop=st}
  else if(k==='sw'){chS[a.getAttribute('data-p')]=+a.getAttribute('data-c');chSave();for(const x of chOv.querySelectorAll('.ch-sw[data-p="'+a.getAttribute('data-p')+'"]'))x.classList.toggle('on',x===a);chPvOutfit()}
- else if(k==='sp'){chS.spawn=a.getAttribute('data-s');chSave();for(const x of chOv.querySelectorAll('.ch-chip'))x.classList.toggle('on',x===a);chSetSpawn()}},{passive:false});
-chOv.addEventListener('touchmove',e=>{e.stopPropagation();if(!chDrag||!chPv)return;for(const t of e.changedTouches)if(t.identifier===chDrag.id){chPv.rot+=(t.clientX-chDrag.x)*.012;chDrag.x=t.clientX}},{passive:false});
-chOv.addEventListener('touchend',e=>{e.stopPropagation();chDrag=null});chOv.addEventListener('touchcancel',()=>{chDrag=null});
+ else if(k==='sp'){chS.spawn=a.getAttribute('data-s');chSave();for(const x of chOv.querySelectorAll('.ch-chip'))x.classList.toggle('on',x===a);chSetSpawn()}}
+// taps act on release so the options list can be dragged to scroll (the game blocks the browser's own touch scrolling)
+chOv.addEventListener('touchstart',e=>{e.stopPropagation();const t=e.changedTouches&&e.changedTouches[0];if(!t)return;const tg=t.target&&t.target.closest?t.target:e.target;
+ if(tg&&tg.classList&&tg.classList.contains('ch-in')){tg.focus();return}if(e.cancelable)e.preventDefault();
+ if(tg&&tg.tagName==='CANVAS'){chDrag={x:t.clientX,id:t.identifier,cv:1};if(chPv)chPv.auto=false;return}
+ chDrag={id:t.identifier,x:t.clientX,y:t.clientY,y0:t.clientY,a:tg&&tg.closest?tg.closest('[data-a]'):null,side:tg&&tg.closest?tg.closest('.ch-side'):null,moved:false}},{passive:false});
+chOv.addEventListener('touchmove',e=>{e.stopPropagation();if(!chDrag)return;for(const t of e.changedTouches)if(t.identifier===chDrag.id){if(chDrag.cv){if(chPv)chPv.rot+=(t.clientX-chDrag.x)*.012;chDrag.x=t.clientX}
+  else{if(Math.abs(t.clientY-chDrag.y0)>7)chDrag.moved=true;if(chDrag.moved&&chDrag.side)chDrag.side.scrollTop-=t.clientY-chDrag.y;chDrag.y=t.clientY}}},{passive:false});
+chOv.addEventListener('touchend',e=>{e.stopPropagation();const d=chDrag;chDrag=null;if(d&&!d.cv&&!d.moved&&d.a)chAction(d.a)});chOv.addEventListener('touchcancel',()=>{chDrag=null});
+chOv.addEventListener('wheel',e=>{const sd=chOv.querySelector('.ch-side');if(sd)sd.scrollTop+=e.deltaY;e.stopPropagation()},{passive:true});
 chOv.addEventListener('mousedown',e=>e.stopPropagation());chOv.addEventListener('click',e=>e.stopPropagation());
 // ---------- turntable preview (its own small renderer, only while the screen is open) ----------
 function chPvOpen(cv){try{const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.08;

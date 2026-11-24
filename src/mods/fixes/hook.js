@@ -1,0 +1,2 @@
+window.__env=()=>{envT=0};window.__zoom=(f,y,p)=>{cam.fov=f;cam.updateProjectionMatrix();if(y!==undefined){look.id=99;camYaw=y;camPitch=p}};window.__tp=(x,z)=>{pos.set(x,0.3,z)};window.__top=(x,z,h)=>{cam.position.set(x,h,z+.1);cam.lookAt(x,0,z)};
+window.__dn=b=>{vhDown=b};window.__carq=()=>{carQ=true};window.__me=()=>({y:Math.round(pos.y*10)/10,hp:Math.round(hp),chute:fxChOpen,drv:!!driving,state});
