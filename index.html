@@ -36,19 +36,26 @@ THREE.ColorManagement.legacyMode=false;const $=id=>document.getElementById(id);
 // ---------- input adapter: one input path (Pointer Events) for touch, mouse and pen, so controls work inside embeds and on desktop ----------
 if(window.PointerEvent){const act=new Map(),W=window,fire=(type,t,tgt)=>{const ev=new Event(type,{bubbles:true,cancelable:true});ev.inSyn=true;ev.changedTouches=[t];ev.touches=Array.from(act.values());ev.targetTouches=ev.touches;(tgt&&tgt.isConnected?tgt:document.body).dispatchEvent(ev)};
  const wake=()=>{try{if(AC&&AC.state==='suspended')AC.resume()}catch(e){}};
- for(const ty of['touchstart','touchmove','touchend','touchcancel'])W.addEventListener(ty,e=>{if(e.inSyn)return;e.stopImmediatePropagation();if(e.cancelable)e.preventDefault();if(ty==='touchend')wake()},{capture:true,passive:false});
- let lastP=-1e9;const mt=e=>({identifier:'mouse',clientX:e.clientX,clientY:e.clientY,pageX:e.pageX,pageY:e.pageY,target:e.target});
+ const drop=(id,ty)=>{const t=act.get(id);if(!t)return;act.delete(id);fire(ty||'touchend',t,t.target)};
+ // release everything that matches: a missed "finger up" must never leave a control stuck
+ const dropAll=f=>{for(const t of Array.from(act.values()))if(!f||f(t))drop(t.identifier,'touchcancel')};
+ for(const ty of['touchstart','touchmove','touchend','touchcancel'])W.addEventListener(ty,e=>{if(e.inSyn)return;e.stopImmediatePropagation();if(e.cancelable)e.preventDefault();
+  if(ty==='touchend'||ty==='touchcancel'){wake();const left=e.touches?e.touches.length:0,mine=Array.from(act.values()).filter(t=>t.pt!=='mouse');
+   if(left===0)dropAll();else if(mine.length>left){const c=e.changedTouches&&e.changedTouches[0];mine.sort((a,b)=>c?(Math.hypot(a.clientX-c.clientX,a.clientY-c.clientY)-Math.hypot(b.clientX-c.clientX,b.clientY-c.clientY)):0);for(let i=0;i<mine.length-left;i++)drop(mine[i].identifier)}}},{capture:true,passive:false});
+ let lastP=-1e9;const mt=e=>({identifier:'mouse',pt:'mouse',clientX:e.clientX,clientY:e.clientY,pageX:e.pageX,pageY:e.pageY,target:e.target});
  for(const ty of['mousedown','mousemove','mouseup','click','dblclick','contextmenu'])W.addEventListener(ty,e=>{if(e.inSyn)return;if(ty!=='mousemove')e.stopImmediatePropagation();if(ty==='contextmenu')e.preventDefault();if(ty==='click')wake();
-  if(performance.now()-lastP<700)return; // pointer events are arriving, so this mouse event is a duplicate
-  if(ty==='mousedown'&&e.button===0&&!act.has('mouse')){const t=mt(e);act.set('mouse',t);fire('touchstart',t,t.target)}
-  else if(ty==='mousemove'){const t=act.get('mouse');if(t){t.clientX=e.clientX;t.clientY=e.clientY;fire('touchmove',t,t.target)}}
-  else if(ty==='mouseup'){const t=act.get('mouse');if(t){t.clientX=e.clientX;t.clientY=e.clientY;act.delete('mouse');fire('touchend',t,t.target);wake()}}},{capture:true});
- for(const ty of['pointerdown','pointermove','pointerup','pointercancel'])W.addEventListener(ty,()=>{lastP=performance.now()},{capture:true});
- W.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;const t={identifier:e.pointerId,clientX:e.clientX,clientY:e.clientY,pageX:e.pageX,pageY:e.pageY,target:e.target};act.set(e.pointerId,t);try{if(e.target.releasePointerCapture&&e.target.hasPointerCapture&&e.target.hasPointerCapture(e.pointerId))e.target.releasePointerCapture(e.pointerId)}catch(x){}fire('touchstart',t,t.target)},{capture:true});
- W.addEventListener('pointermove',e=>{const t=act.get(e.pointerId);if(!t)return;t.clientX=e.clientX;t.clientY=e.clientY;t.pageX=e.pageX;t.pageY=e.pageY;fire('touchmove',t,t.target)},{capture:true});
- const end=ty=>e=>{const t=act.get(e.pointerId);if(!t)return;t.clientX=e.clientX;t.clientY=e.clientY;act.delete(e.pointerId);fire(ty,t,t.target);wake()};
+  const t=act.get('mouse');
+  if(ty==='mousemove'){if(t){t.clientX=e.clientX;t.clientY=e.clientY;fire('touchmove',t,t.target)}return}
+  if(ty==='mouseup'||ty==='click'){if(t){t.clientX=e.clientX;t.clientY=e.clientY;drop('mouse')}dropAll(c=>c.pt==='mouse');wake();return}
+  if(ty==='mousedown'&&e.button===0&&!t&&performance.now()-lastP>700){const n=mt(e);act.set('mouse',n);fire('touchstart',n,n.target)}},{capture:true});
+ W.addEventListener('pointerdown',e=>{lastP=performance.now();if(e.pointerType==='mouse'&&e.button!==0)return;
+  if(act.has(e.pointerId))drop(e.pointerId,'touchcancel');if(e.isPrimary)dropAll(c=>c.pt===e.pointerType);
+  const t={identifier:e.pointerId,pt:e.pointerType||'touch',clientX:e.clientX,clientY:e.clientY,pageX:e.pageX,pageY:e.pageY,target:e.target};act.set(e.pointerId,t);
+  try{if(e.pointerType==='mouse'&&e.target.setPointerCapture)e.target.setPointerCapture(e.pointerId)}catch(x){}fire('touchstart',t,t.target)},{capture:true});
+ W.addEventListener('pointermove',e=>{lastP=performance.now();const t=act.get(e.pointerId);if(!t)return;if(t.pt==='mouse'&&e.isTrusted&&e.buttons===0){drop(e.pointerId);return}t.clientX=e.clientX;t.clientY=e.clientY;t.pageX=e.pageX;t.pageY=e.pageY;fire('touchmove',t,t.target)},{capture:true});
+ const end=ty=>e=>{lastP=performance.now();const t=act.get(e.pointerId);if(!t)return;t.clientX=e.clientX;t.clientY=e.clientY;drop(e.pointerId,ty);wake()};
  W.addEventListener('pointerup',end('touchend'),{capture:true});W.addEventListener('pointercancel',end('touchcancel'),{capture:true});
- W.addEventListener('blur',()=>{for(const t of Array.from(act.values())){act.delete(t.identifier);fire('touchcancel',t,t.target)}})}
+ W.addEventListener('blur',()=>dropAll());W.addEventListener('pagehide',()=>dropAll());document.addEventListener('visibilitychange',()=>{if(document.hidden)dropAll()})}
 
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.domElement.id='g';renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x9fd0ff,120,262);
