@@ -7,3 +7,9 @@ window.__lf={st:()=>({state,smart:lfSmart.map(p=>p.userData.lf&&p.userData.lf.st
  fast:(n)=>{for(let i=0;i<(n||40);i++)for(const f of MODS)f(.05)},cop:()=>{lfCopSpawn();const c=lfCops[lfCops.length-1];pos.set(c.g.position.x+3,.3,c.g.position.z);return lfCops.length},cam:(y,p)=>{camYaw=y;camPitch=p}};
 window.__lf.idle=()=>{let k=0;for(const p of lfSmart){if(k>=4)break;const s=p.userData.lf;p.userData.lf={st:k%2?'idle':'chat',t:0,dur:30,gl:0,base:p.rotation.y,o:lfSmart[k^1]};k++}};
 window.__lf.play=()=>{lfIntroDone=false;window.dispatchEvent(new Event('bc-play'))};
+// staged mugging right now; a ped with a given personality reacting to a threat; who is doing what
+window.__lf.mug=()=>{if(cpMug){scene.remove(cpMug.g);cpMug=null}cpMugCD=0;wanted=0;wantedScore=0;return 1};
+window.__lf.mugSt=()=>cpMug?{stage:cpMug.lfStage?+cpMug.lfStage.t.toFixed(1):null,victim:!!(cpMug.lfStage&&cpMug.lfStage.v),done:cpMug.done,d:Math.round(Math.hypot(cpMug.g.position.x-pos.x,cpMug.g.position.z-pos.z))}:null;
+window.__lf.pers=(i,pr,d,o)=>{const q=peds[i],fx=-Math.sin(camYaw),fz=-Math.cos(camYaw),rx=Math.cos(camYaw),rz=-Math.sin(camYaw);q.userData.dead=false;q.userData.lfP=pr;q.position.set(pos.x+fx*(d||6)+rx*(o||0),.3,pos.z+fz*(d||6)+rz*(o||0));lfReact(q,pos,d||6,'shot');return q.userData.lf&&q.userData.lf.st};
+window.__lf.who=()=>lfSmart.filter(p=>Math.hypot(p.position.x-pos.x,p.position.z-pos.z)<40).map(p=>[peds.indexOf(p),p.userData.lf&&p.userData.lf.st,p.userData.lfClip||'',p.userData.rlGst?p.userData.rlGst.n:'',!!p.userData.av]);
+window.__lf.god=()=>{hp=1e6};

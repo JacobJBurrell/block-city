@@ -10,7 +10,7 @@ function ldMesh(L,mat,shadow){const m=new THREE.Mesh(U.mergeBufferGeometries(L),
 function ldSol(x0,x1,z0,z1,h){solids.push({minX:Math.min(x0,x1),maxX:Math.max(x0,x1),minZ:Math.min(z0,z1),maxZ:Math.max(z0,z1),h:h})}
 function ldInto(L,geo,x,y,z,ry){const g=geo.clone();if(ry)g.rotateY(ry);g.translate(x,y,z);L.push(g)}
 // 5x7 pixel font for signs
-const ldF={A:[14,17,17,31,17,17,17],B:[30,17,17,30,17,17,30],C:[15,16,16,16,16,16,15],D:[30,17,17,17,17,17,30],E:[31,16,16,30,16,16,31],F:[31,16,16,30,16,16,16],G:[15,16,16,23,17,17,15],I:[31,4,4,4,4,4,31],K:[17,18,20,24,20,18,17],L:[16,16,16,16,16,16,31],M:[17,27,21,21,17,17,17],N:[17,25,21,19,17,17,17],O:[14,17,17,17,17,17,14],P:[30,17,17,30,16,16,16],R:[30,17,17,30,20,18,17],S:[15,16,16,14,1,1,30],T:[31,4,4,4,4,4,4],U:[17,17,17,17,17,17,14],V:[17,17,17,17,17,10,4],W:[17,17,17,21,21,27,17],Y:[17,17,10,4,4,4,4],'-':[0,0,0,31,0,0,0]};
+const ldF={A:[14,17,17,31,17,17,17],B:[30,17,17,30,17,17,30],C:[15,16,16,16,16,16,15],D:[30,17,17,17,17,17,30],E:[31,16,16,30,16,16,31],F:[31,16,16,30,16,16,16],G:[15,16,16,23,17,17,15],I:[31,4,4,4,4,4,31],K:[17,18,20,24,20,18,17],L:[16,16,16,16,16,16,31],M:[17,27,21,21,17,17,17],N:[17,25,21,19,17,17,17],O:[14,17,17,17,17,17,14],P:[30,17,17,30,16,16,16],R:[30,17,17,30,20,18,17],S:[15,16,16,14,1,1,30],T:[31,4,4,4,4,4,4],U:[17,17,17,17,17,17,14],V:[17,17,17,17,17,10,4],W:[17,17,17,21,21,27,17],H:[17,17,17,31,17,17,17],Y:[17,17,10,4,4,4,4],'-':[0,0,0,31,0,0,0]};
 // one glyph; (ox,oy,oz) = top-left as the reader sees it, (rx,rz) = the reader's right on the ground plane
 function ldGlyph(L,ch,ox,oy,oz,rx,rz,px,dp,col){const g=ldF[ch];if(!g)return;for(let r=0;r<7;r++){let c=0;while(c<5){if(g[r]>>(4-c)&1){let e=c;while(e<4&&(g[r]>>(3-e)&1))e++;const w=(e-c+1)*px,m=(c+e+1)/2*px;ldB(L,rx?w:dp,px,rx?dp:w,ox+rx*m,oy-(r+.5)*px,oz+rz*m,col);c=e+1}else c++}}}
 function ldText(L,s,ox,oy,oz,rx,rz,px,dp,col){for(let i=0;i<s.length;i++)ldGlyph(L,s[i],ox+rx*i*px*6,oy,oz+rz*i*px*6,rx,rz,px,dp,col)}
@@ -33,6 +33,15 @@ function ldVehicle(kind,x,z,ry){const g=new THREE.Group(),add=(geo,px,py,pz)=>{c
  g.position.set(x,0,z);g.rotation.y=ry||0;scene.add(g);cars.push(c);return c}
 function ldStaticTank(L,x,z,ry,ty){ldSol(x-2.2,x+2.2,z-3.5,z+3.5,3.2);ldInto(L,ldVG.hull,x,0,z,ry);const t=ldVG.tur.clone();t.rotateY(ty||0);t.translate(0,2.2,.3);t.rotateY(ry||0);t.translate(x,0,z);L.push(t)}
 function ldStaticTruck(L,x,z,ry){ldSol(x-1.3,x+1.3,z-3.7,z+3.7,3.3);ldInto(L,ldVG.truck,x,0,z,ry);for(const p of[[-1.17,-2.4],[1.17,-2.4],[-1.17,1.7],[1.17,1.7]]){const w=ldVG.wheel.clone();w.scale(1.22,1.22,1.22);w.translate(p[0],.55,p[1]);w.rotateY(ry||0);w.translate(x,0,z);L.push(w)}}
+// sign atlas for the army base (one texture, one merged mesh, 2 triangles per sign)
+const ldCells={},ldSG=[];const ldAtlas=(()=>{const cv=document.createElement('canvas');cv.width=512;cv.height=512;const g=cv.getContext('2d');
+ const cell=(k,x,y,w,h,bg,fg,txt,sz)=>{ldCells[k]=[x,y,w,h];g.fillStyle=bg;g.fillRect(x,y,w,h);if(!txt)return;g.fillStyle=fg;g.textAlign='center';g.textBaseline='middle';let s=Math.floor(h*(sz||.7));const F=n=>'900 '+n+'px Impact, Arial Black, sans-serif';g.font=F(s);while(g.measureText(txt).width>w*.9&&s>6){s--;g.font=F(s)}g.fillText(txt,x+w/2,y+h/2+1)};
+ cell('mil',0,0,512,128,'#8a1c1c','#fff','');g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';const fit=(t,y,mx)=>{let s=mx;g.font='900 '+s+'px Impact, Arial Black, sans-serif';while(g.measureText(t).width>440&&s>8){s--;g.font='900 '+s+'px Impact, Arial Black, sans-serif'}g.fillText(t,256,y)};fit('MILITARY BASE',40,50);g.fillStyle='#f2e24a';fit('NO ENTRY',94,50);g.strokeStyle='#f2f2ea';g.lineWidth=4;g.strokeRect(6,6,500,116);
+ cell('chk',0,128,512,80,'#47503a','#f2e24a','CHECKPOINT');cell('hgA',0,208,256,40,'#47503a','#f2e24a','HANGAR A');cell('hgB',256,208,256,40,'#47503a','#f2e24a','HANGAR B');
+ cell('bkA',0,248,256,32,'#5b6447','#f2f2ea','BARRACKS A');cell('bkB',256,248,256,32,'#5b6447','#f2f2ea','BARRACKS B');cell('bkC',0,280,256,32,'#5b6447','#f2f2ea','BARRACKS C');cell('bkD',256,280,256,32,'#5b6447','#f2f2ea','BARRACKS D');
+ cell('cmd',0,312,256,40,'#7c8073','#f2e24a','COMMAND');cell('mp',256,312,256,26,'#3d4432','#f2e24a','MOTOR POOL');cell('rng',256,338,128,24,'#47503a','#f2e24a','RANGE');cell('stop',384,338,96,32,'#c62828','#ffffff','STOP',.8);cell('army',0,352,256,64,'#6f7a5a','#f2f2ea','ARMY');
+ const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t})();
+function ldTag(k,w,h,x,y,z,ry){const c=ldCells[k],g=new THREE.PlaneGeometry(w,h),uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,(c[0]+uv.getX(i)*c[2])/512,1-(c[1]+(1-uv.getY(i))*c[3])/512);const q=g.toNonIndexed();if(ry)q.rotateY(ry);q.translate(x,y,z);ldSG.push(q)}
 // ================= ARMY BASE (north) =================
 const ldZ0=-HALF-36,ldZ1=-HALF-236,ldX0=-165,ldX1=165,ldGX=roadCenter(5);
 {const L=ldN,OL=0x5b6447,OD=0x47503a,CON=0x8d8f86,ASP=0x34363a,DK=0x24271f,GL=0x1b2733,WH=0xf2f2ea;
@@ -63,7 +72,78 @@ const ldZ0=-HALF-36,ldZ1=-HALF-236,ldX0=-165,ldX1=165,ldGX=roadCenter(5);
  for(const s of[-1,1])for(const z of[ldZ0-22,ldZ0-52,ldZ0-104,ldZ0-134]){ldB(L,.25,7,.25,ldGX+s*7.2,3.5,z,DK);ldB(L,1.3,.2,.3,ldGX+s*6.6,7,z,DK);ldB(ldE,1,.22,.5,ldGX+s*6.2,6.85,z,0xfff1c9)}
  for(const b of[[-100,ldZ0-26],[-100,ldZ0-46],[-58,ldZ0-26],[-58,ldZ0-46]])for(const k of[-2,1,3])ldB(ldE,2.1,1.2,.1,b[0]+k*4.8,3,b[1]+5.6,0xffe2a0);for(const k of[-3,-1,2,4])ldB(ldE,1.5,1.3,.1,22+k*2.5,6,ldZ0-32.9,0xffe2a0);
  for(const s of[-1,1])for(let k=0;k<3;k++){ldB(L,3,.5,1,ldGX+s*12,.3+k*.5,ldZ0-14-(k%2)*.2,0x9b8f6b);ldB(L,1,.5,2.4,ldGX+s*(10.5+ (s>0?3:3)),.3+k*.5,ldZ0-15.5,0x9b8f6b)}
- ldMesh(L,ldMat,true);
+ // ===== base detail: all merged into ldN (one mesh) and ldE (emissive) =====
+ const PI=Math.PI,SB=0x9b8f6b;
+ // extra guard towers (mid sides, back) with ladders and searchlights
+ const tower=(x,z)=>{for(const a of[-2,2])for(const b of[-2,2]){ldB(L,.4,9,.4,x+a,4.5,z+b,DK);ldB(L,.2,3,.2,x+a*1.2,10.8,z+b*1.2,DK)}
+  ldB(L,5.2,.35,5.2,x,9.1,z,OD);for(const a of[-1,1]){ldB(L,5.2,1.2,.2,x,9.9,z+a*2.5,OL);ldB(L,.2,1.2,5.2,x+a*2.5,9.9,z,OL);ldB(L,4.2,.1,.1,x,4.5,z+a*2,DK,0,0,a*1.1);ldB(L,.1,.1,4.2,x+a*2,4.5,z,DK,0,a*1.1,0)}ldB(L,6,.3,6,x,12.4,z,OD);
+  for(let y=.5;y<9;y+=.55)ldB(L,.9,.06,.06,x+.9,y,z+2.35,DK);for(const a of[.45,1.35])ldB(L,.06,9,.06,x+a,4.5,z+2.35,DK);ldSol(x-2.3,x+2.3,z-2.3,z+2.3,12.6);
+  const lx=x-Math.sign(x)*2.3,lz=z+(z>(ldZ0+ldZ1)/2?-2.3:2.3);ldB(ldE,.9,.7,.9,lx,11.2,lz,0xfff4c8);ldBeams.push([lx,11.2,lz])};
+ tower(ldX0+7,(ldZ0+ldZ1)/2);tower(ldX1-7,(ldZ0+ldZ1)/2);tower(0,ldZ1+7);
+ // gate checkpoint: jersey barriers along the approach, speed bumps, stop sign, warning board, gate lights
+ for(const s of[-1,1]){for(let z=ldZ0+4;z<-HALF-4;z+=3.4){ldB(L,.7,.9,3.2,ldGX+s*6.6,.45,z+1.7,0xb7b5ac);ldB(L,.35,.35,3.2,ldGX+s*6.6,1.05,z+1.7,0xb7b5ac)}ldSol(ldGX+s*6.6-.4,ldGX+s*6.6+.4,ldZ0+4,-HALF-4,1.2);ldB(ldE,.7,.4,.7,ldGX+s*8,5.85,ldZ0+.6,0xfff1c9)}
+ for(const z of[ldZ0+10,ldZ0+20]){ldB(L,11.4,.12,.6,ldGX,.08,z,0xf2c230);for(let k=0;k<6;k++)ldB(L,.9,.13,.62,ldGX-4.7+k*1.9,.085,z,0x222222)}
+ ldB(L,.12,2.6,.12,ldGX+5.6,1.3,ldZ0+3,0x8a8d90);ldCy(L,.62,.62,.06,8,ldGX+5.6,2.75,ldZ0+3.05,0xc62828,PI/2);ldTag('stop',.96,.32,ldGX+5.6,2.75,ldZ0+3.09,0);
+ {const x=ldGX+16,z=ldZ0+14;for(const s of[-1,1])ldB(L,.2,4.4,.2,x+s*4.6,2.2,z-.12,0x8a8d90);ldB(L,10.4,2.8,.15,x,3.4,z,0x8a1c1c);ldTag('mil',10.2,2.6,x,3.4,z+.09,0)}
+ ldB(L,6.4,1.1,.15,ldGX+13,4.45,ldZ0-1.85,OD);ldTag('chk',6.2,1,ldGX+13,4.45,ldZ0-1.76,0);
+ // tank-trap hedgehogs along the outside of the front fence
+ for(let x=-150;x<=150;x+=10){if(Math.abs(x-ldGX)<16)continue;const z=ldZ0+5+(Math.abs(x)%20?1.2:0);for(let k=0;k<3;k++)ldB(L,2.3,.22,.22,x,.78,z,0x3a3a36,k*PI*2/3,0,.62);ldSol(x-.8,x+.8,z-.8,z+.8,1.4)}
+ // razor wire coils on every fence run
+ const wire=(x0,z0,x1,z1)=>{const len=Math.hypot(x1-x0,z1-z0),ax=Math.abs(x1-x0)>Math.abs(z1-z0),n=Math.floor(len/2.5);for(let i=0;i<n;i++){const t=(i+.5)/n,g=new THREE.TorusGeometry(.42,.025,3,5);g.rotateY(ax?PI/2:0);g.rotateX((i%3-1)*.22);g.translate(x0+(x1-x0)*t,4.78,z0+(z1-z0)*t);L.push(ldPaint(g,0xc4c8cc))}};
+ wire(ldX0,ldZ0,ldGX-8,ldZ0);wire(ldGX+8,ldZ0,ldX1,ldZ0);wire(ldX0,ldZ1,ldX1,ldZ1);wire(ldX0,ldZ0,ldX0,ldZ1);wire(ldX1,ldZ0,ldX1,ldZ1);
+ // barracks: porches, steps, AC units, names
+ [[-100,ldZ0-26,'A'],[-100,ldZ0-46,'B'],[-58,ldZ0-26,'C'],[-58,ldZ0-46,'D']].forEach(b=>{const x=b[0],z=b[1];ldB(L,3.4,.2,1.9,x,2.85,z+6.4,OD);for(const s of[-1,1])ldB(L,.15,2.8,.15,x+s*1.5,1.4,z+7.2,DK);ldB(L,2.8,.25,1.3,x,.13,z+6.2,CON);
+  for(const s of[-1,1]){ldB(L,.6,.8,1.1,x+s*18.35,.8,z+2,0x9aa09a);ldB(L,.06,.5,.5,x+s*18.67,.85,z+2,DK);ldB(L,.6,.8,1.1,x+s*18.35,.8,z-2,0x9aa09a)}
+  ldTag('bk'+b[2],9.2,1.1,x+11.8,4.3,z+5.57,0)});
+ // HQ name, parade square, three flag poles (flags are animated meshes below)
+ ldTag('cmd',8,1.25,22,4.45,ldZ0-32.93,0);
+ {const z=ldZ0-20;ldB(L,30,.06,14,22,.05,z,0x9a9a92);for(const s of[-1,1]){ldB(L,30,.07,.25,22,.06,z+s*6.8,WH);ldB(L,.25,.07,14,22+s*14.8,.06,z,WH)}for(const x of[14,22,30]){ldCy(L,.1,.13,10,6,x,5,ldZ0-27.5,0xc9ccd0);ldCy(L,.2,.2,.2,6,x,10.1,ldZ0-27.5,0xd4af37)}}
+ // hangars: names over the doors, interior light strips
+ for(const hx of[64,114]){const hz=ldZ0-52;ldTag(hx<100?'hgA':'hgB',14,2.05,hx,11.1,hz+15.06,0);for(const s of[-1,1])ldB(ldE,.4,.15,26,hx+s*7,9.7,hz,0xfff1c9)}
+ // helipad: edge lights and a windsock
+ for(let k=0;k<12;k++){const a=k*PI/6;ldB(ldE,.35,.15,.35,10+Math.cos(a)*7.5,.22,ldZ0-122+Math.sin(a)*7.5,k%2?0x7df0ff:0xfff1c9)}
+ const sock=(x,z)=>{ldCy(L,.08,.1,6,6,x,3,z,0xdddddd);ldCy(L,.13,.45,2.2,8,x+1.2,5.85,z,0xff6a00,0,-PI/2);ldCy(L,.46,.46,.6,8,x+.55,5.85,z,0xf2f2f2,0,-PI/2)};sock(24,ldZ0-110);sock(120,ldZ1+8);
+ // motor pool: shade canopy, bay lines, sign, extra jeep, fuel pumps
+ const sJeep=(x,z,ry)=>{ldSol(x-1.1,x+1.1,z-2.1,z+2.1,2.4);ldInto(L,ldVG.jeep,x,0,z,ry);for(const p of[[-1.02,-1.3],[1.02,-1.3],[-1.02,1.3],[1.02,1.3]]){const w=ldVG.wheel.clone();w.translate(p[0],.45,p[1]);w.rotateY(ry||0);w.translate(x,0,z);L.push(w)}};
+ {const z=ldZ0-125;ldB(L,80,.35,16,-94,5.4,z,OD);ldB(L,80.4,.5,.3,-94,5.25,z+8.1,0x3d4432);for(let x=-132;x<=-56;x+=12.6)for(const s of[-1,1]){ldB(L,.35,5.3,.35,x,2.65,z+s*7.6,DK);ldSol(x-.3,x+.3,z+s*7.6-.3,z+s*7.6+.3,5.4)}
+  ldB(L,13,1.4,.15,-94,6.3,z+8.1,0x3d4432);ldTag('mp',12.6,1.25,-94,6.3,z+8.2,0);for(let x=-130;x<=-58;x+=8)ldB(L,.15,.06,11,x,.07,z,WH);sJeep(-88,z+1,PI);sJeep(-52,z+12,PI/2)}
+ {const x=-45,z=ldZ0-100;ldB(L,6,.3,2,x,.15,z,CON);for(const s of[-1,1]){ldB(L,.8,1.6,.6,x+s*1.6,1.1,z,0xb02323);ldB(L,.6,.4,.05,x+s*1.6,1.4,z+.33,0xf2f2ea);ldB(L,.2,4.4,.2,x+s*2.6,2.2,z,DK)}ldB(L,8,.3,5,x,4.5,z,OD);ldB(ldE,6,.08,.3,x,4.33,z,0xfff1c9);ldSol(x-3,x+3,z-1,z+1,1.8)}
+ // container yard (west) and ammo crate stacks
+ {const cc=[0x55613f,0x9b8f6b,0x8a4b2b,0x4f6d7a,0x6b5a3a];for(const x of[-155,-152.4,-149.8,-141.5,-138.9])for(const d of[30,44,58]){const n=1+Math.floor(ldR()*2.6),z=ldZ0-d;
+  for(let k=0;k<n;k++){const col=cc[Math.floor(ldR()*cc.length)],y=1.3+k*2.62;ldB(L,2.5,2.6,12.2,x,y,z,col);for(const s of[-1,1])for(let r=-4.5;r<=4.5;r+=3)ldB(L,.06,2.3,.3,x+s*1.27,y,z+r,col);ldB(L,2.2,2.3,.06,x,y,z+6.12,col);for(const s of[-.5,.5])ldB(L,.07,2.3,.08,x+s,y,z+6.16,DK)}ldSol(x-1.25,x+1.25,z-6.1,z+6.1,n*2.62)}}
+ const crates=(x,z,nx,nz,h)=>{for(let a=0;a<nx;a++)for(let b=0;b<nz;b++){const hh=1+Math.floor(ldR()*h);for(let c=0;c<hh;c++){const col=ldR()<.5?0x6b5a3a:0x4f5d3a;ldB(L,1.25,1.05,1.25,x+a*1.35,.53+c*1.07,z+b*1.35,col);ldB(L,1.28,.12,1.28,x+a*1.35,.53+c*1.07,z+b*1.35,0x3a3a2e)}}ldSol(x-.7,x+nx*1.35-.65,z-.7,z+nz*1.35-.65,h*1.07)};
+ crates(-128,ldZ0-30,3,2,2);crates(-128,ldZ0-62,2,2,2);crates(87,ldZ0-45,2,3,3);crates(136,ldZ0-139,2,2,2);
+ // sandbag gun nests
+ const nest=(x,z,r,face)=>{for(let l=0;l<3;l++){const n=Math.round(PI*1.55*r/.92);for(let i=0;i<=n;i++){const a=face+.45+(i+(l%2)*.5)/n*(PI*2-.9);ldB(L,.9,.36,.5,x+Math.cos(a)*r,.2+l*.36,z+Math.sin(a)*r,(i+l)%3?SB:0x8f8462,PI/2-a)}}
+  const b=face+PI;ldCy(L,.05,.05,1.1,4,x,.55,z,DK);ldB(L,1.3,.16,.16,x+Math.cos(b)*.5,1.15,z+Math.sin(b)*.5,0x2b2e26,-b);ldB(L,.3,.25,.25,x,1.15,z,0x2b2e26,-b);ldSol(x-r-.3,x+r+.3,z-r-.3,z+r+.3,1.1)};
+ nest(-140,ldZ0-14,2.2,-PI/2);nest(150,ldZ0-14,2.2,-PI/2);nest(-4,ldZ0-9,2,-PI/2);nest(30,ldZ0-138,2.2,-PI/2);nest(-155,ldZ0-165,2.2,0);
+ // radome, comms mast, water tower (east strip)
+ {const z=ldZ0-128;ldCy(L,4.2,4.6,4,16,150,2,z,0x8d8f86);const d=new THREE.SphereGeometry(5.2,16,10,0,PI*2,0,PI*.62);d.translate(150,6,z);L.push(ldPaint(d,0xf2f2ea));ldSol(145.4,154.6,z-4.6,z+4.6,11.2)}
+ {const x=150,z=ldZ0-62,C=0xc9ccd0;for(const a of[-1,1])for(const b of[-1,1])ldB(L,.22,26,.22,x+a,13,z+b,C);for(let y=2;y<25;y+=3)for(const a of[-1,1]){ldB(L,2.2,.1,.1,x,y,z+a,C);ldB(L,.1,.1,2.2,x+a,y,z,C);ldB(L,2.7,.08,.08,x,y+1.5,z+a,C,0,0,a*.94);ldB(L,.08,.08,2.7,x+a,y+1.5,z,C,0,a*.94,0)}
+  for(const q of[[0,18,1.6,0],[-1.6,22,0,-PI/2]]){const g=new THREE.SphereGeometry(1.4,12,6,0,PI*2,0,PI*.32);g.rotateX(PI/2);g.rotateY(q[3]);g.translate(x+q[0],q[1],z+q[2]);L.push(ldPaint(g,0xf2f2ea))}ldB(ldE,.5,.5,.5,x,26.3,z,0xff3020);ldSol(x-1.2,x+1.2,z-1.2,z+1.2,26)}
+ {const x=150,z=ldZ0-35,C=0x7c8073;for(const a of[-1,1])for(const b of[-1,1])ldB(L,.35,14,.35,x+a*2.4,7,z+b*2.4,C);for(const y of[4,9])for(const a of[-1,1]){ldB(L,5,.18,.18,x,y,z+a*2.4,C);ldB(L,.18,.18,5,x+a*2.4,y,z,C)}
+  ldCy(L,3.6,3.6,4.5,16,x,16.2,z,0x6f7a5a);ldCy(L,0,3.9,2,16,x,19.4,z,0x5b6447);ldCy(L,3.9,3.9,.3,16,x,14,z,0x47503a);{const g=new THREE.CylinderGeometry(3.63,3.63,1.1,12,1,true,-.6,1.2),c=ldCells.army,uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,(c[0]+uv.getX(i)*c[2])/512,1-(c[1]+(1-uv.getY(i))*c[3])/512);const q=g.toNonIndexed();q.translate(x,16.4,z);ldSG.push(q)}ldSol(x-2.7,x+2.7,z-2.7,z+2.7,20)}
+ // floodlight masts
+ const mast=(x,z)=>{ldCy(L,.18,.28,18,6,x,9,z,DK);ldB(L,3.2,.3,.5,x,18,z,DK);for(const a of[-1.2,-.4,.4,1.2])ldB(ldE,.6,.45,.6,x+a,17.7,z+.3,0xfff4d6);ldSol(x-.3,x+.3,z-.3,z+.3,18)};
+ mast(-150,ldZ0-108);mast(-155,ldZ0-150);mast(155,ldZ0-150);mast(40,ldZ0-150);
+ // airstrip: edge and threshold lights, hardstands and a blast wall behind the parked jets
+ for(let x=-145;x<=145;x+=14.5)for(const s of[-1,1])ldB(ldE,.3,.18,.3,x,.2,ldZ1+22+s*8.6,0xfff1c9);for(let k=-3;k<=3;k++){ldB(ldE,.3,.18,.3,-150.6,.2,ldZ1+22+k*2.2,0x40ff70);ldB(ldE,.3,.18,.3,150.6,.2,ldZ1+22+k*2.2,0xff4030)}
+ for(const x of[-84,-52,-20])ldB(L,16,.06,12,x,.05,ldZ0-159,0x8d8f86);for(let x=-100;x<=-4;x+=1.46){ldB(L,1.38,3.4,.45,x,1.7,ldZ0-150,0xa9aaa2);ldB(L,1.38,.4,1.4,x,.2,ldZ0-150,0xa9aaa2)}ldSol(-100.7,-3.3,ldZ0-150.7,ldZ0-149.3,3.4);
+ // training ground: dirt yard, obstacle course, rope tower
+ {const zc=ldZ0-100;ldB(L,80,.06,58,85,.04,ldZ0-118,0x8a7655);
+  for(let i=0;i<5;i++)for(const s of[-1,1]){const g=new THREE.TorusGeometry(.42,.16,5,10);g.rotateX(PI/2);g.translate(50+i*1.5+(s>0?.75:0),.17,zc+s*1.2);L.push(ldPaint(g,0x1c1c1c))}
+  for(const x of[60,64]){ldB(L,.35,1.2,5,x,.6,zc,0x8a6b45);ldSol(x-.2,x+.2,zc-2.5,zc+2.5,1.2)}ldB(L,.5,2.4,5,70,1.2,zc,0x8a6b45);for(let y=.5;y<2.4;y+=.6)ldB(L,.12,.12,4.6,69.7,y,zc,0x6b5236);ldSol(69.75,70.25,zc-2.5,zc+2.5,2.4);
+  for(const s of[-1,1]){ldB(L,10.4,.12,.12,81,2.3,zc+s*.55,0x55585d);for(const x of[76,86])ldB(L,.14,2.35,.14,x,1.17,zc+s*.55,0x55585d)}for(let x=76.5;x<86;x+=.6)ldB(L,.06,.06,1.1,x,2.33,zc,0x9a9da1);
+  for(const s of[-1,1]){ldCy(L,.14,.14,9,8,95,.55,zc+s*1.6,0x7a5c3a,0,PI/2);for(const x of[91,95,99])ldB(L,.2,.5,.2,x,.25,zc+s*1.6,0x5d4630)}
+  {const x=106;for(const a of[-1,1]){for(const s of[-1,1])ldB(L,.18,5.76,.18,x+a*1.55,2.42,zc+s*2.4,0x7a5c3a,0,0,a*.569);for(let k=0;k<6;k++){const y=.5+k*.8;ldB(L,.05,.05,4.8,x+a*3.1*(1-y/4.85),y,zc,0x2a2a2a)}for(let k=-2;k<=2;k++)ldB(L,.05,5.7,.05,x+a*1.55,2.42,zc+k*.95,0x2a2a2a,0,0,a*.569)}ldB(L,.2,.2,5,x,4.85,zc,0x7a5c3a)}
+  for(let x=112;x<=121;x+=1.5){for(const s of[-1,1])ldB(L,.08,.6,.08,x,.3,zc+s*1.3,0x55585d);ldB(L,.03,.03,2.6,x,.58,zc,0x9a9da1)}for(const s of[-1,0,1])ldB(L,9.2,.03,.03,116.5,.55,zc+s*1.3,0x9a9da1);
+  {const x=120,z=ldZ0-112;for(const a of[-1.5,1.5])for(const b of[-1,1])ldB(L,.25,7,.25,x+a,3.5,z+b,0x7a5c3a);ldB(L,3.4,.3,2.4,x,7,z,0x7a5c3a);for(const a of[-.8,0,.8])ldCy(L,.05,.05,6.6,5,x+a,3.6,z,0xc2a878);ldSol(x-1.7,x+1.7,z-1.1,z+1.1,7)}}
+ // shooting range: firing-line shelter, rests, targets, earth berm
+ {const zf=ldZ0-128,zt=ldZ0-143;ldB(L,62,.25,4,82,3.1,zf,OD);for(let x=52;x<=112;x+=10)for(const s of[-1,1])ldB(L,.2,3,.2,x,1.5,zf+s*1.8,DK);
+  ldB(L,7,1.3,.15,82,3.9,zf+2,OD);ldTag('rng',6.6,1.2,82,3.9,zf+2.09,0);
+  for(let x=55;x<=109;x+=6){ldB(L,1.2,.9,.6,x,.45,zf-1.2,SB);for(const s of[-1,1])ldB(L,.08,1.5,.08,x+s*.35,.75,zt,DK);ldB(L,.9,1.3,.06,x,1.75,zt,0xf2f2ea);ldB(L,.5,.5,.07,x,1.95,zt,0x222222);ldB(L,.2,.2,.08,x,1.95,zt,0xc62828)}
+  ldB(L,66,3.6,3,82,1.8,zt-3,0x6f5f40);ldSol(49,115,zt-4.5,zt-1.5,3.6)}
+ ldMesh(L,ldMat,true);var ldSignMat=new THREE.MeshStandardMaterial({map:ldAtlas,emissive:0xffffff,emissiveMap:ldAtlas,emissiveIntensity:.12,roughness:.75});{const sm=new THREE.Mesh(U.mergeBufferGeometries(ldSG),ldSignMat);sm.receiveShadow=true;scene.add(sm)}
  // moving parts
  const bg=new THREE.ConeGeometry(7,44,14,1,true);bg.translate(0,-22,0);const bm=new THREE.MeshBasicMaterial({color:0xfff0c0,transparent:true,opacity:.2,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false,fog:false});
  for(let i=0;i<ldBeams.length;i++){const p=ldBeams[i],g=new THREE.Group(),m=new THREE.Mesh(bg,bm);m.rotation.z=1.15;g.add(m);g.position.set(p[0],p[1],p[2]);g.visible=false;scene.add(g);ldBeams[i]={g:g,ph:i*1.7,base:Math.atan2(p[2]-(ldZ0+ldZ1)/2,-p[0])}}
@@ -72,6 +152,7 @@ const ldZ0=-HALF-36,ldZ1=-HALF-236,ldX0=-165,ldX1=165,ldGX=roadCenter(5);
  const ar=[];for(let k=0;k<8;k++)ldB(ar,1.9,.22,.22,-.95-k*1.9,0,0,k%2?0xf2f2ea:0xc62828);ldB(ar,.5,1.3,.5,0,-.5,0,DK);
  var ldArm=new THREE.Mesh(U.mergeBufferGeometries(ar),ldMat);ldArm.position.set(ldGX+7.9,1.25,ldZ0);scene.add(ldArm);
  const fg=new THREE.PlaneGeometry(3.4,2.1);fg.translate(1.7,0,0);var ldFlag=new THREE.Mesh(ldPaint(fg,0x2f6b3a),ldMat2);ldFlag.position.set(ldGX-14,11.8,ldZ0-14);scene.add(ldFlag);
+ var ldFlags=[];{const fd=[[0x2f6b3a,0xf2e24a,0x2f6b3a],[0x1d3f8a,0xf2f2f2,0x1d3f8a],[0xc62828,0xf2f2f2,0xc62828]];for(let i=0;i<3;i++){const a=[];for(let k=0;k<3;k++){const g=new THREE.PlaneGeometry(3.2,.66);g.translate(1.6,.66-k*.66,0);a.push(ldPaint(g,fd[i][k]))}const m=new THREE.Mesh(U.mergeBufferGeometries(a),ldMat2);m.position.set(14+i*8,9.3,ldZ0-27.5);m.castShadow=true;scene.add(m);ldFlags.push(m)}}
  // vehicles, helicopter, crates, soldiers
  ldVehicle('tank',64,ldZ0-22,Math.PI);ldVehicle('tank',-20,ldZ0-104,-Math.PI/2);ldVehicle('truck',114,ldZ0-22,Math.PI);ldVehicle('jeep',ldGX-11,ldZ0-24,Math.PI);ldVehicle('jeep',-79,ldZ0-14,Math.PI);
  if(typeof vhMakeHeli==='function'&&typeof vhHelis!=='undefined'){const m=vhMakeHeli(0x4b5a34);m.position.set(10,.2,ldZ0-122);m.rotation.y=.6;scene.add(m);const c={m:m,speed:0,steer:0,hp:160,vhT:'heli',vy:0,vhSpin:0,vhFloor:.2,vhEng:new THREE.Vector3(0,2.7,.4)};cars.push(c);vhHelis.push(c)}
@@ -176,9 +257,9 @@ if(typeof fxBounds==='function'){const b0=fxBounds;fxBounds=function(c,m){if(ldL
 function ldLate(){if(typeof fxChOpen!=='undefined'&&fxChOpen&&!driving){const f=ldFloor(pos.x,pos.z);if(f>0&&pos.y-f<10){fxChOpen=false;if(typeof fxChute!=='undefined')fxChute.visible=false}}}
 // ================= per-frame =================
 function ldTick(dt){if(!ldLateOn){ldLateOn=true;MODS.push(ldLate)}
- const night=1-Math.max(0,Math.min(1,Math.sin(dayT*Math.PI*2)*3+.5));ldEm.color.setScalar(.4+night*1.5);ldSign.material.emissiveIntensity=.3+night*.3;
+ const night=1-Math.max(0,Math.min(1,Math.sin(dayT*Math.PI*2)*3+.5));ldEm.color.setScalar(.4+night*1.5);ldSignMat.emissiveIntensity=.12+night*.35;ldSign.material.emissiveIntensity=.3+night*.3;
  for(const b of ldBeams){b.g.visible=night>.4;if(b.g.visible)b.g.rotation.y=b.base+Math.sin(T*.35+b.ph)*1.1}
- ldRadar.rotation.y+=dt*.8;ldFlag.rotation.y=.5+Math.sin(T*2.2)*.3;ldWheel.rotation.x+=dt*.12;
+ ldRadar.rotation.y+=dt*.8;ldFlag.rotation.y=.5+Math.sin(T*2.2)*.3;for(let i=0;i<ldFlags.length;i++)ldFlags[i].rotation.y=.5+Math.sin(T*2.2+i*1.3)*.3;ldWheel.rotation.x+=dt*.12;
  const fl=.5+.5*Math.sin(T*7.3)*Math.sin(T*3.1);ldScreen.material.color.setRGB(.35+night*(.5+fl*.9),.38+night*(.6+fl*.7),.42+night*(.9+fl*.5));
  const gd=Math.hypot(pos.x-ldGX,pos.z-ldZ0);ldArm.rotation.z+=((gd<26?-1.3:0)-ldArm.rotation.z)*Math.min(1,dt*2.5);
  // restricted area

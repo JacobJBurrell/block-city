@@ -1,1 +1,2 @@
-rep('examples/js/utils/BufferGeometryUtils.js"><\\/script>','examples/js/utils/BufferGeometryUtils.js"><\\/script>'+''.join('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/'+p+'"><\\/script>' for p in ['loaders/GLTFLoader.js','loaders/DRACOLoader.js','utils/SkeletonUtils.js']))
+# The loading splash is ui's #uiBoot card (see ui/mod.py); real/mod.js still looks for an old #rlBoot element and simply finds none.
+# The GLTF/DRACO loaders and SkeletonUtils are no longer blocking <script> tags: real/mod.js loads them async (rlBoot()).

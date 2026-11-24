@@ -2,9 +2,9 @@
 const uiDef={q:8,auto:1,vol:1,sens:1,invY:0,rot:0,lh:0,fps:0,hint:0};
 const uiS=Object.assign({},uiDef);try{Object.assign(uiS,JSON.parse(localStorage.getItem('blockcity_settings')||'{}'))}catch(e){}
 function uiSave(){try{localStorage.setItem('blockcity_settings',JSON.stringify(uiS))}catch(e){}}
-let uiZoom=1,uiSens=uiS.sens,uiInvY=uiS.invY?-1:1,uiOpen=false,uiPrev='play',uiFloat=false,uiPinch=null,uiVolBase=null,uiConfirm=0,uiDrag=null;
+let uiZoom=1,uiZoomT=1,uiSens=uiS.sens,uiInvY=uiS.invY?-1:1,uiOpen=false,uiPrev='play',uiFloat=false,uiPinch=null,uiVolBase=null,uiConfirm=0,uiDrag=null;
 const uiClamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function uiZoomBy(f){uiZoom=uiClamp(uiZoom*f,.42,2.6)}
+function uiZoomBy(f){uiZoomT=uiClamp(uiZoomT*f,.42,2.6)}  // the camera glides to uiZoomT (see ext.js)
 // ----- real viewport + rotate-screen plumbing -----
 const uiDW=Object.getOwnPropertyDescriptor(window,'innerWidth'),uiDH=Object.getOwnPropertyDescriptor(window,'innerHeight');
 const uiRW=()=>uiDW&&uiDW.get?uiDW.get.call(window):document.documentElement.clientWidth,uiRH=()=>uiDH&&uiDH.get?uiDH.get.call(window):document.documentElement.clientHeight;
@@ -157,9 +157,13 @@ uiSet.addEventListener('touchmove',e=>{e.stopPropagation();if(uiDrag)for(const t
 {const up=e=>{e.stopPropagation();if(uiDrag){const k=uiDrag.k;uiDrag=null;uiSave();if(k==='q')uiApplyQ()}};uiSet.addEventListener('touchend',up);uiSet.addEventListener('touchcancel',up)}
 uiRotB.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(state==='play'||state==='ready')uiRotCycle()},{passive:false});
 uiGear.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();uiOpenSet()},{passive:false});
-addEventListener('keydown',e=>{if(e.key==='Escape'||e.key==='p'){if(uiOpen)uiCloseSet();else uiOpenSet()}});
+// Esc / P: menu. If Esc first closed the map or the phone, it does only that.
+{let busy=false;addEventListener('keydown',e=>{busy=(typeof mpOpen!=='undefined'&&mpOpen)||(typeof chOpenF!=='undefined'&&chOpenF)},true);
+ addEventListener('keydown',e=>{if(e.key!=='Escape'&&e.key!=='p')return;if(e.target&&e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(busy)return;
+  if(!uiOpen&&typeof stPhOpen!=='undefined'&&stPhOpen&&typeof stClosePhone==='function'){if(e.key==='Escape')stClosePhone();return}if(uiOpen)uiCloseSet();else uiOpenSet()})}
 // ----- floating joystick: base asks this before it reads the stick position, so the stick is moved under the thumb first -----
-function uiJoyZone(t){const W=innerWidth,H=innerHeight;if(!((uiS.lh?t.clientX>W*.55:t.clientX<W*.45)&&t.clientY>H*.36))return false;
+function uiJoyZone(t){const W=innerWidth,H=innerHeight;if(t.pt==='mouse')return false;  // the mouse never drives the touch stick (WASD does)
+ if(!((uiS.lh?t.clientX>W*.55:t.clientX<W*.45)&&t.clientY>H*.36))return false;
  if(joy.id===null&&!uiOpen){const R=stick.offsetWidth/2||63,x=uiClamp(t.clientX,R+6,W-R-6),y=uiClamp(t.clientY,H*.36+R*.5,H-R-6);stick.style.left=(x-R)+'px';stick.style.top=(y-R)+'px';stick.style.bottom='auto';stick.style.right='auto';uiFloat=true}return true}
 // ----- pressed states (capture: sees every touch even when a button stops it) -----
 const uiHeld={};
@@ -170,11 +174,13 @@ const uiFind=(l,id)=>{for(const t of l)if(t.identifier===id)return t;return null
 addEventListener('touchstart',e=>{if(state!=='play'||uiPinch)return;for(const t of e.changedTouches){if(t.identifier===look.id||t.identifier===joy.id||t.identifier===fireId)continue;if(look.id===null)continue;
  if(hit($('fire'),t)||hit($('wpn'),t)||hit($('jump'),t)||hit($('car'),t))continue;const a=uiFind(e.touches,look.id);if(!a)continue;
  uiPinch={a:look.id,b:t.identifier,d:Math.max(24,Math.hypot(a.clientX-t.clientX,a.clientY-t.clientY)),z:uiZoom};look.id=null;break}});
-addEventListener('touchmove',e=>{if(!uiPinch)return;const a=uiFind(e.touches,uiPinch.a),b=uiFind(e.touches,uiPinch.b);if(!a||!b){uiPinch=null;return}uiZoom=uiClamp(uiPinch.z*uiPinch.d/Math.max(24,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),.42,2.6)});
+addEventListener('touchmove',e=>{if(!uiPinch)return;const a=uiFind(e.touches,uiPinch.a),b=uiFind(e.touches,uiPinch.b);if(!a||!b){uiPinch=null;return}uiZoom=uiZoomT=uiClamp(uiPinch.z*uiPinch.d/Math.max(24,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),.42,2.6)});
 {const end=e=>{if(!uiPinch)return;for(const t of e.changedTouches)if(t.identifier===uiPinch.a||t.identifier===uiPinch.b){uiPinch=null;return}if(!e.touches||e.touches.length<2)uiPinch=null};addEventListener('touchend',end);addEventListener('touchcancel',end)}
 // ----- per-frame -----
+const uiBoot=document.getElementById('uiBoot');let uiBootN=0;   // boot card from mod.py: fades once the first frame (with the new title) is on screen
 let uiLast=performance.now(),uiAcc=0,uiN=0,uiWarm=0,uiAutoBad=0,uiVolT=0,uiCarS='',uiJumpS='',uiTitleOn=true,uiFpsV=0;
 MODS.push(function(dt){const now=performance.now(),rt=Math.min(.5,(now-uiLast)/1000);uiLast=now;
+ if(uiBoot&&uiBootN<2&&++uiBootN===2){uiBoot.style.opacity='0';setTimeout(()=>{try{uiBoot.remove()}catch(e){}},500)}
  const ready=state==='ready'||(state==='settings'&&uiPrev==='ready');if(ready!==uiTitleOn){uiTitleOn=ready;if(ready){uiTitle.classList.remove('ui-out');uiTitle.style.display='flex'}else{uiTitle.classList.add('ui-out');setTimeout(()=>{if(!uiTitleOn)uiTitle.style.display='none'},600);if(state==='play'){try{window.dispatchEvent(new Event('bc-play'))}catch(e){}}}document.body.classList.toggle('ui-title',ready);if(!ready&&!uiS.hint){uiS.hint=1;uiSave()}}
  if(carLbl!==uiCarS){uiCarS=carLbl;$('car').setAttribute('data-s',carLbl)}const js=$('jump').textContent;if(js!==uiJumpS){uiJumpS=js;$('jump').setAttribute('data-s',js)}
  const on=joy.id!==null;if(stick.classList.contains('ui-on')!==on)stick.classList.toggle('ui-on',on);if(!on&&uiFloat){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.right='';uiFloat=false}

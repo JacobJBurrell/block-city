@@ -25,7 +25,7 @@ function jtMake(x,z,yaw){const T=apT.fighter,g=new THREE.Group();g.rotation.orde
 const jtHome=[[-132,ldZ1+22,-Math.PI/2],[-84,ldZ1+41,-Math.PI/2],[-52,ldZ1+41,-Math.PI/2],[-20,ldZ1+41,-Math.PI/2]];
 for(const h of jtHome)jtMake(h[0],h[1],h[2]);
 setTimeout(function(){try{if(typeof mpIcons!=='undefined')for(const p of jtJets)mpIcons.push({x:p.m.position.x,z:p.m.position.z,label:'Fighter jet',color:'#9fb0b8',glyph:'✈',obj:p.m})}catch(e){}},0);
-{const nc=nearestCar;nearestCar=function(peek){const r=nc(peek);if(!peek&&r&&r.jt&&!r.jtS){r.jtS=true;wantedScore=Math.max(wantedScore,16);ldAlert=25;jtMode=0;toast('STOLE A FIGHTER JET! Hold JUMP for throttle')}return r}}
+{const nc=nearestCar;nearestCar=function(peek){const r=nc(peek);if(!peek&&r&&r.jt&&!r.jtS){r.jtS=true;wantedScore=Math.max(wantedScore,16);ldAlert=25;jtMode=0;toast('STOLE A FIGHTER JET!'+(vhKbLast?'':' Hold JUMP for throttle'))}return r}}
 function jtAim(o,d,range,cos,hostileOnly){let best=null,bs=1e9;for(const t of allTargets()){if(hostileOnly&&!t.hostile)continue;const v=t.p.clone().sub(o),L=v.length();if(L<4||L>range)continue;const c=v.dot(d)/L;if(c<cos)continue;const s=L*(1.2-c);if(s<bs){bs=s;best=t}}return best}
 function jtFire(){const c=driving,m=c.m,d=apFwd(m),o=m.position.clone().add(new THREE.Vector3(0,1.6,0)).addScaledVector(d,7);
  if(jtMode===1){if(jtRel>0){fireCD=.15;return}jtRel=2.6;fireCD=.3;const mesh=new THREE.Mesh(rkGeo,rkMat);mesh.scale.setScalar(1.6);mesh.position.copy(o);scene.add(mesh);

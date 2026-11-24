@@ -51,6 +51,24 @@ addEventListener('touchstart',e=>{for(const t of e.changedTouches)if(hit($('jump
 function vhTouchEnd(e){for(const t of e.changedTouches)delete vhJumpIds[t.identifier];if(!e.touches||!e.touches.length)for(const k in vhJumpIds)delete vhJumpIds[k];vhJump=Object.keys(vhJumpIds).length>0}
 addEventListener('touchend',vhTouchEnd);addEventListener('touchcancel',vhTouchEnd);
 addEventListener('keydown',e=>{if(e.key===' ')vhJump=true});addEventListener('keyup',e=>{if(e.key===' ')vhJump=false});
+// ----- laptop flight keys, shared by helicopters (here), planes (airport) and jets -----
+// vhK holds key state by e.code. vhKbFly is true while the pilot flies with the keyboard; a real touch switches back to the touch controls.
+const vhK={};let vhKbFly=false,vhKbLast=(navigator.maxTouchPoints||0)===0;
+const vhFlyCodes={KeyW:1,KeyA:1,KeyS:1,KeyD:1,ArrowUp:1,ArrowDown:1,ArrowLeft:1,ArrowRight:1,Space:1,KeyC:1};
+function vhFlying(){const c=driving;return !!(c&&state==='play'&&(c.vhT==='heli'||c.kind==='plane'))}
+function vhKeyTxt(e){return e.target&&e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]')}
+addEventListener('keydown',e=>{if(vhKeyTxt(e))return;vhK[e.code]=1;vhKbLast=true;if(vhFlyCodes[e.code]&&vhFlying()){vhKbFly=true;if(e.code.indexOf('Arrow')===0||e.code==='Space')e.preventDefault()}},true);
+addEventListener('keyup',e=>{vhK[e.code]=0},true);addEventListener('blur',()=>{for(const k in vhK)vhK[k]=0});
+addEventListener('touchstart',e=>{for(const t of e.changedTouches||[])if(t.pt!=='mouse'&&t.pt!=='key'){vhKbFly=false;vhKbLast=false}},true);
+function vhKA(a,b){return (vhK[a]||vhK[b])?1:0}
+// small keycap hint shown the first time per session the player takes each kind of aircraft with a keyboard
+const vhHintSeen={};let vhKHT=0;const vhHintEl=document.createElement('div');vhHintEl.id='vhKeys';document.body.appendChild(vhHintEl);
+{const st=document.createElement('style');st.textContent='#vhKeys{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 70px);transform:translateX(-50%);z-index:7;display:none;pointer-events:none;padding:8px 14px;border-radius:14px;background:rgba(14,16,24,.64);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);color:#fff;font:700 11px/1.9 system-ui,-apple-system,Segoe UI,sans-serif;text-align:center;white-space:nowrap;transition:opacity .6s;box-shadow:0 8px 22px rgba(0,0,0,.3)}#vhKeys kbd{display:inline-block;min-width:13px;padding:0 5px;margin:0 1px;border-radius:5px;background:rgba(255,255,255,.92);color:#15171d;font:800 10px/17px system-ui,sans-serif;box-shadow:0 2px 0 rgba(255,255,255,.35)}#vhKeys i{font-style:normal;opacity:.55;margin:0 7px}';document.head.appendChild(st)}
+function vhFlyHint(kind){if(vhHintSeen[kind]||!vhKbLast)return;vhHintSeen[kind]=1;const k=s=>'<kbd>'+s+'</kbd>',d='<i>&middot;</i>';
+ vhHintEl.innerHTML=kind==='heli'?(k('W')+k('A')+k('S')+k('D')+' fly'+d+k('Space')+' up'+d+k('C')+' down<br>hold '+k('E')+' to bail out'):
+  (k('W')+k('S')+' throttle'+d+k('A')+k('D')+' bank'+d+k('&uarr;')+k('&darr;')+' pitch ('+k('&darr;')+' climbs)<br>'+k('&larr;')+k('&rarr;')+' rudder'+d+k('Space')+' brake'+d+'hold '+k('E')+' to bail out');
+ vhHintEl.style.opacity='1';vhHintEl.style.display='block';vhKHT=9}
+function vhHintTick(dt){if(vhKHT<=0)return;vhKHT-=dt;if(!vhFlying())vhKHT=Math.min(vhKHT,.01);if(vhKHT<.7)vhHintEl.style.opacity='0';if(vhKHT<=0)vhHintEl.style.display='none'}
 // ----- vehicle health (GTA-style): hp stays 0..100 percent of each vehicle's own max points -----
 const vhBurning=[],vhDamaged=new Set();let vhCur=null,vhSmokeT=0,vhLastV=0,vhOwnBlow=null;
 function vhManaged(c){if(!c||c.dead)return false;const k=c.kind||(c.m&&c.m.userData.kind);return !(c.custom||k==='plane'||k==='jet')}
@@ -91,7 +109,7 @@ function vhGround(x,z,y){let f=0;for(const P of vhPads)if(P.y<=y+.7&&Math.hypot(
  if(f===0){const mx=((x+HALF)%CELL+CELL)%CELL,mz=((z+HALF)%CELL+CELL)%CELL;if(mx>ROAD&&mz>ROAD&&Math.abs(x)<HALF&&Math.abs(z)<HALF)f=.32}
  if(typeof ldFloor==='function'){const h=ldFloor(x,z);if(h>f&&h<=y+.7)f=h}if(typeof isLandAt==='function'){const h=isLandAt(x,z);if(h>f&&h<=y+.7)f=h}return f}
 function vhDrive(dt,jx,jy){const c=driving,m=c.m,p=m.position;jumpQ=false;
- if(c.vhT==='heli'){c.vhSpin=Math.min(1,c.vhSpin+dt*.8);const fl0=c.vhFloor||0,air=p.y>fl0+.12,up=(vhJump||vhUp)&&c.vhSpin>.85,dn=vhDown&&!up;
+ if(c.vhT==='heli'){if(vhKbFly){jx=vhKA('KeyD','ArrowRight')-vhKA('KeyA','ArrowLeft');jy=vhKA('KeyS','ArrowDown')-vhKA('KeyW','ArrowUp')}c.vhSpin=Math.min(1,c.vhSpin+dt*.8);const fl0=c.vhFloor||0,air=p.y>fl0+.12,up=(vhJump||vhUp)&&c.vhSpin>.85,dn=vhDown&&!up;
   let tv=up?11:(dn?-9:0);const hgt=p.y-fl0;if(dn&&hgt<5)tv=Math.max(tv,-(1+hgt*1.6));if(!air&&!up)tv=0;
   c.vy+=(tv-c.vy)*Math.min(1,dt*(up||dn?2.2:3.2));
   if(air){c.speed+=-jy*26*dt;c.speed*=Math.pow(Math.abs(jy)<.05?.45:.72,dt);c.speed=Math.max(-14,Math.min(46,c.speed));m.rotation.y+=-jx*dt*1.7}else c.speed*=Math.pow(.002,dt);
@@ -148,8 +166,8 @@ function vhRoofOf(b){const x=(b.minX+b.maxX)/2,z=(b.minZ+b.maxZ)/2,y=b.h+.6;
  const R={b,x,z,y,x0:b.minX+.25,x1:b.maxX-.25,z0:b.minZ+.25,z1:b.maxZ-.25};vhRoofs.push(R);vhNoGear.add(b);return R}
 // elevator: glowing door on the north face at street level, housing with an exit door on the roof
 const vhElevMat=new THREE.MeshStandardMaterial({color:0x0f141a,emissive:0x35b0ff,emissiveIntensity:1.4,toneMapped:false}),vhRingMat=new THREE.MeshBasicMaterial({color:0x35b0ff,transparent:true,opacity:.55,toneMapped:false,depthWrite:false});
-const vhSignTex=canvasTex(256,128,g=>{g.fillStyle='#0b0f14';g.fillRect(0,0,256,128);g.strokeStyle='#35b0ff';g.lineWidth=6;g.strokeRect(6,6,244,116);g.fillStyle='#e8f4ff';g.font='900 44px -apple-system,Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('HELIPAD',128,50);g.font='700 30px -apple-system,Arial,sans-serif';g.fillStyle='#35b0ff';g.fillText('ELEVATOR ▲',128,94)});
-const vhSign2Tex=canvasTex(256,128,g=>{g.fillStyle='#0b0f14';g.fillRect(0,0,256,128);g.strokeStyle='#35b0ff';g.lineWidth=6;g.strokeRect(6,6,244,116);g.fillStyle='#e8f4ff';g.font='900 46px -apple-system,Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('STREET',128,50);g.font='700 30px -apple-system,Arial,sans-serif';g.fillStyle='#35b0ff';g.fillText('ELEVATOR ▼',128,94)});
+const vhSignTex=canvasTex(256,128,g=>{g.fillStyle='#0b0f14';g.fillRect(0,0,256,128);g.strokeStyle='#35b0ff';g.lineWidth=6;g.strokeRect(6,6,244,116);g.fillStyle='#e8f4ff';g.font='900 44px -apple-system,Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('HELIPAD',128,50);g.font='700 30px -apple-system,Arial,sans-serif';g.fillStyle='#35b0ff';g.fillText('ELEVATOR â–²',128,94)});
+const vhSign2Tex=canvasTex(256,128,g=>{g.fillStyle='#0b0f14';g.fillRect(0,0,256,128);g.strokeStyle='#35b0ff';g.lineWidth=6;g.strokeRect(6,6,244,116);g.fillStyle='#e8f4ff';g.font='900 46px -apple-system,Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('STREET',128,50);g.font='700 30px -apple-system,Arial,sans-serif';g.fillStyle='#35b0ff';g.fillText('ELEVATOR â–¼',128,94)});
 function vhRing(x,y,z){const m=new THREE.Mesh(new THREE.RingGeometry(.75,1.15,32),vhRingMat);m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.userData.vhKeep=true;scene.add(m);return m}
 function vhElevator(R,side){const b=R.b,w=b.maxX-b.minX,off=Math.min(6.5,w/2-2.4)*side,sx=R.x+off,sz=b.minZ;
  const door=new THREE.Mesh(bxg(2.2,3,.2,sx,1.8,sz-.1),new THREE.MeshStandardMaterial({color:0x8e98a3,metalness:.85,roughness:.28}));scene.add(door);const seam=new THREE.Mesh(bxg(.05,3,.22,sx,1.8,sz-.11),CM.dark);scene.add(seam);
@@ -196,9 +214,9 @@ const vhSpot=new THREE.SpotLight(0xfff0cc,0,70,.6,.7,1.3);scene.add(vhSpot);scen
 // ----- per-frame -----
 function vhTick(dt){if(!vhPadInit)vhPadsLate();
  if(carQ&&driving&&state==='play'){if(driving.vhT==='boat'&&driving.m.position.x>HALF+53){carQ=false;toast('Get closer to the beach')}}
- vhGuardTick();vhRoofTick(dt);
+ vhGuardTick();vhRoofTick(dt);vhHintTick(dt);
  if(driving!==vhCur){if(vhCur&&vhCur.vhT==='heli'&&!driving&&vhCur.m.position.y>(vhCur.vhFloor||0)+.6){const m=vhCur.m,ax=m.position.x-pos.x,az=m.position.z-pos.z,d=Math.hypot(ax,az)||1;vhCur.vhDrift=[ax/d*7-Math.sin(m.rotation.y)*vhCur.speed*.6,az/d*7-Math.cos(m.rotation.y)*vhCur.speed*.6]}
-  if(vhRider.parent)vhRider.parent.remove(vhRider);vhCur=driving;vhLastV=driving?driving.speed:0;if(driving){if(driving.hp===undefined)driving.hp=100;vhMaxPts(driving);vhSeat(driving);if(driving.vhT==='heli')toast('UP to climb, DOWN to descend. Hold CAR to bail out');else if(driving.vhT==='boat')toast('Boat! Push up to go')}}
+  if(vhRider.parent)vhRider.parent.remove(vhRider);vhCur=driving;vhLastV=driving?driving.speed:0;if(driving){if(driving.hp===undefined)driving.hp=100;vhMaxPts(driving);vhSeat(driving);if(driving.vhT==='heli'){if(vhKbLast)vhFlyHint('heli');else toast('UP to climb, DOWN to descend. Hold CAR to bail out')}else if(driving.vhT==='boat')toast('Boat! Push up to go')}}
  const c=driving;
  if(c&&c.vhBike&&state==='play'){let jy=joy.y,jx=joy.x;if(Math.hypot(jx,jy)<.22){jx=0;jy=0}c.speed+=-jy*16*dt;const tz=-jx*.48*Math.min(1,Math.abs(c.speed)/22)*Math.sign(c.speed||1);c.m.rotation.z+=(tz-c.m.rotation.z)*Math.min(1,dt*6)}
  for(const b of vhBikes)if(b!==c&&!b.dead)b.m.rotation.z+=(.14-b.m.rotation.z)*Math.min(1,dt*4);

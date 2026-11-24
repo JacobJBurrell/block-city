@@ -1,6 +1,16 @@
 // ---------- input adapter: one input path (Pointer Events) for touch, mouse and pen, so controls work inside embeds and on desktop ----------
 let inRot=0,inRW=0,inRH=0;const inW=()=>inRW||document.documentElement.clientWidth,inH=()=>inRH||document.documentElement.clientHeight,inX=e=>inRot===1?e.clientY:(inRot===2?inH()-e.clientY:(inRot===3?inW()-e.clientX:e.clientX)),inY=e=>inRot===1?inW()-e.clientX:(inRot===2?e.clientX:(inRot===3?inH()-e.clientY:e.clientY)); // 0 normal, 1 left (90), 2 right (270), 3 upside down (180) // rotate-screen mode maps real screen points into the rotated game space
 const inTxt=e=>e.target&&e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]');
+// last input type (like Roblox): keyboard or mouse hides the on-screen touch controls (body.in-kbm), a finger on the screen brings them back
+let inKbm=false,inMvAcc=0;
+function inSetKbm(on){inMvAcc=0;if(on===inKbm&&document.body.classList.contains('in-kbm')===on)return;inKbm=on;document.body.classList.toggle('in-kbm',on)}
+inSetKbm(!((navigator.maxTouchPoints||0)>0));
+{const W=window,o={capture:true,passive:true};
+ W.addEventListener('pointerdown',e=>{if(!e.isTrusted)return;if(e.pointerType==='mouse')inSetKbm(true);else if(e.pointerType==='touch'||e.pointerType==='pen')inSetKbm(false)},o);
+ W.addEventListener('pointermove',e=>{if(!e.isTrusted||e.pointerType!=='mouse'||inKbm)return;inMvAcc+=Math.abs(e.movementX||0)+Math.abs(e.movementY||0);if(inMvAcc>40)inSetKbm(true)},o);
+ W.addEventListener('touchstart',e=>{if(e.isTrusted)inSetKbm(false)},o);
+ W.addEventListener('wheel',e=>{if(e.isTrusted)inSetKbm(true)},o);
+ W.addEventListener('keydown',e=>{if(e.isTrusted&&!inTxt(e))inSetKbm(true)},true)}
 if(window.PointerEvent){const act=new Map(),W=window,fire=(type,t,tgt)=>{const ev=new Event(type,{bubbles:true,cancelable:true});ev.inSyn=true;ev.changedTouches=[t];ev.touches=Array.from(act.values());ev.targetTouches=ev.touches;(tgt&&tgt.isConnected?tgt:document.body).dispatchEvent(ev)};
  const wake=()=>{try{if(AC&&AC.state==='suspended')AC.resume()}catch(e){}};
  const drop=(id,ty)=>{const t=act.get(id);if(!t)return;act.delete(id);fire(ty||'touchend',t,t.target)};

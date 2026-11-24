@@ -26,3 +26,4 @@ window.__cp.goRoom=t=>{const R=cpRooms[t];if(!R)return null;cpGo({type:t,D:cpTyp
 window.__cp.toDoor=()=>{pos.set(cpIn.room.x,.3,6.4);vel.z=2;return 1};window.__cp.pol=()=>police.map(p=>[Math.round(p.m.position.x),Math.round(p.m.position.z),+p.speed.toFixed(1)]);
 window.__cp.allRooms=()=>{const o={};for(const t of['store','jewel','bank','safe','police','hosp','club','gun','clinic','estate']){const R=cpGetRoom(t);let n=0;R.grp.traverse(m=>{if(m.isMesh)n++});o[t]=n}for(const t of['stlux','stoff']){let n=0;cpRooms[t].grp.traverse(m=>{if(m.isMesh)n++});o[t]=n}return o};
 window.__cp.panTxt=()=>cpPan.style.display+'|'+cpPan.innerText.slice(0,160).replace(/\n/g,' / ');window.__cp.hp=n=>{hp=n};
+window.__cpx=function(s){return eval(s)};

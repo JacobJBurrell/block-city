@@ -12,7 +12,7 @@ const stCrew={rico:{n:'Rico Vance',r:'Driver',s:3,cut:12,c:'#ff8a3d'},dee:{n:'De
 const stCon={vee:{n:'Vee Calloway',r:'Fixer',c:'#ffd23f'},taxi:{n:'Block Cab',r:'Taxi',c:'#f4c20d'},mech:{n:'Otto Garage',r:'Car delivery',c:'#6dd47e'},law:{n:'Sol Greaves',r:'Lawyer',c:'#b0bec5'},agent:{n:'Dana Pryce',r:'Real estate',c:'#ff7ab8'}};
 function stAv(c,n,sz){const p=n.replace(/"[^"]*"/,'').trim().split(/\s+/);return '<span style="display:inline-flex;align-items:center;justify-content:center;width:'+(sz||34)+'px;height:'+(sz||34)+'px;border-radius:50%;background:'+c+';color:#000;font-weight:900;font-size:'+Math.round((sz||34)*.4)+'px;flex:none">'+p[0][0]+(p[1]?p[1][0]:'')+'</span>'}
 // ----- properties -----
-const stSP=(i,j,o)=>[roadCenter(i)+CELL/2+o,roadCenter(j)+ROAD/2+1.7];
+const stSP=(i,j,o)=>{const a=[roadCenter(i)+CELL/2+o,roadCenter(j)+ROAD/2+1.7];a.ij=[i,j];return a};
 const stProps=[{id:'safe',n:'Safehouse Apartment',k:'home',p:5000,d:'Heal, save, lose 2 stars, 1 garage slot'},
  {id:'apt',n:'Midtown Studio',k:'home',p:18000,at:stSP(3,7,9),t:'safe',d:'Save point and health refill'},
  {id:'house',n:'Westside House',k:'home',p:45000,at:stSP(0,4,9),t:'stlux',d:'Family house in the suburbs'},
@@ -32,15 +32,25 @@ if(stHasCp){cpTypes.stlux={l:'HOME',c:0x6dff8a,wall:0xe8e2d6,floor:0x9c7b55};cpT
   if(t==='stlux'){g.push(stB(5,.9,2,X-5,.75,-4.5,0x394a6d),stB(5,1.6,.5,X-5,1.1,-5.6,0x2c3a57),stB(2.6,.5,1.4,X-5,.55,-2.2,0x6b4a2f),stB(4,.16,2.4,X+4.5,2.6,-6.3,0x0c0c0c),stB(3,.5,1,X+4.5,.55,-6,0x4a3a2c),stB(3.4,.7,4.6,X+5.6,.65,2.5,0xf2f2f2),stB(3.4,.3,1,X+5.6,1.1,.6,0xd7dce2),stB(6,.03,4,X-4,.33,2,0x8a2f3a))}
   else{g.push(stB(5,.12,2.2,X,1.25,-2.5,0x5a4632),stB(.2,1.2,.2,X-2.3,.9,-3.4,0x333333),stB(.2,1.2,.2,X+2.3,.9,-3.4,0x333333),stB(.2,1.2,.2,X-2.3,.9,-1.6,0x333333),stB(.2,1.2,.2,X+2.3,.9,-1.6,0x333333),stB(7,3.4,.14,X,2.6,-6.6,0x1d2b22),stB(1.6,1,.05,X-2,2.9,-6.5,0xfff4c2),stB(1.6,1,.05,X,2.3,-6.5,0xcfe8ff),stB(1.6,1,.05,X+2,3,-6.5,0xffd0d0),stB(1.4,2.4,1.4,X-7,1.5,-5.5,0x596673),stB(1.4,2.4,1.4,X+7,1.5,-5.5,0x596673))}
   scene.add(new THREE.Mesh(U.mergeBufferGeometries(g),new THREE.MeshBasicMaterial({vertexColors:true})))}}
-{const g=[];for(const P of stProps){if(!P.at)continue;const x=P.at[0],z=P.at[1],y=typeof ldFloor==='function'?Math.max(0,stTry(()=>ldFloor(x,z),0)):0;P.x=x;P.z=z;P.y=y;P.away=true;
-  g.push(stB(.14,2.6,.14,x+1.9,y+1.5,z,0xeeeeee),stB(1.7,1,.1,x+1.9,y+2.5,z,P.k==='biz'?0x2a6fdb:0xc62828),stB(1.3,.2,.12,x+1.9,y+2.65,z,0xffffff),stB(1.1,.12,.12,x+1.9,y+2.3,z,0xffffff));
+{const g=[],stSaleQ=[];for(const P of stProps){if(!P.at)continue;
+  // city properties get a real front door on a street facade (shared slot finder with the shops), the marker sits on the pavement at the door
+  if(P.at.ij&&stHasCp&&typeof cpFindSlot==='function'){const sl=stTry(()=>cpFindSlot(P.at.ij[0],P.at.ij[1]),null);const dr=sl?cpAddDoor(sl[0]-.8,sl[1]-.07,0):null;if(sl&&!dr)cpSlots.delete(sl[2]);
+   // no door left (instanced door pool full): keep the plain ring + sign post on the pavement and leave that facade to the city
+   if(sl&&dr){cpClearFront(sl);const dx=sl[0],dz=sl[1],biz=P.k==='biz';P.at=[dx,dz-1.35];P.dz=dz;P.dr=dr;
+   g.push(stB(.45,3.4,.3,dx-1.2,1.7,dz-.15,0xcfc8ba),stB(.45,3.4,.3,dx+1.2,1.7,dz-.15,0xcfc8ba),stB(2.9,.35,.3,dx,3.15,dz-.15,0xcfc8ba),stB(3.2,.12,1.4,dx,3.5,dz-.7,0x2b2f36),stB(2.4,.12,.9,dx,.36,dz-.45,0xb9b3a8),
+    stB(.5,.32,.06,dx+.9,2.6,dz-.33,0x1a1a1a),stB(1.5,1.5,.06,dx+2.4,1.9,dz-.04,biz?0x2a6fdb:0xc62828));
+   if(typeof cpAtM!=='undefined'){const q=gT(new THREE.PlaneGeometry(1.36,1.36),dx+2.4,1.9,dz-.08,0,Math.PI,0),uv=q.attributes.uv;for(let k=0;k<uv.count;k++)uv.setXY(k,(2+uv.getX(k))/4,uv.getY(k)/4);stSaleQ.push(q)}}}
+  const x=P.at[0],z=P.at[1],y=typeof ldFloor==='function'?Math.max(0,stTry(()=>ldFloor(x,z),0)):0;P.x=x;P.z=z;P.y=y;P.away=true;
+  if(!P.dr)g.push(stB(.14,2.6,.14,x+1.9,y+1.5,z,0xeeeeee),stB(1.7,1,.1,x+1.9,y+2.5,z,P.k==='biz'?0x2a6fdb:0xc62828),stB(1.3,.2,.12,x+1.9,y+2.65,z,0xffffff),stB(1.1,.12,.12,x+1.9,y+2.3,z,0xffffff));
   P.ring=new THREE.Mesh(new THREE.RingGeometry(1,1.35,24),new THREE.MeshBasicMaterial({color:0xffd23f,toneMapped:false,side:THREE.DoubleSide}));P.ring.rotation.x=-Math.PI/2;P.ring.position.set(x,y+.36,z);scene.add(P.ring)}
- const m=new THREE.Mesh(U.mergeBufferGeometries(g),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7}));m.castShadow=true;scene.add(m)}
+ const m=new THREE.Mesh(U.mergeBufferGeometries(g),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7}));m.castShadow=true;scene.add(m);if(stSaleQ.length)scene.add(new THREE.Mesh(U.mergeBufferGeometries(stSaleQ),cpAtM))}
 let stIconsDone=false;
 function stBuy(P){if(stOwn(P))return true;const pr=stPrice(P);if(!stPay(pr,'Bought '+P.n)){toast('Not enough cash for '+P.n);return false}if(stS.disc&&pr<P.p)stS.disc=0;if(P.id==='safe'){stTry(()=>{cpSave.own=true;cpStore()})}else{stS.own[P.id]=1;stS.inc[P.id]=0}stIconUpd(P);stStore();stTry(()=>cpBanner('PROPERTY BOUGHT','#6dff8a',P.n,3));beep(1300,.15,.12);stMsg('agent','Congratulations on '+P.n+'. The keys are yours.');return true}
 function stCollect(P){const a=Math.floor(stS.inc[P.id]||0);if(a<1)return 0;stS.inc[P.id]=0;cash+=a;stTx(P.n+' income',a);stStore();return a}
 function stCollectAll(){let a=0;for(const P of stProps)if(P.k==='biz'&&stOwn(P))a+=stCollect(P);return a}
-function stEnterProp(P){if(!stHasCp)return;const pl={type:P.t,D:cpTypes[P.t],x:P.x,z:P.z+2.6,room:cpRooms[P.t],cool:0,st:P};P.away=false;cpFade(()=>{cpGo(pl);hp=100;if(wanted<=2){wantedScore=0;evade=0}const a=P.k==='biz'?stCollect(P):0;toast(P.n+(a?': collected '+stM(a):': healed and saved'));stStore()})}
+function stEnterProp(P){if(!stHasCp)return;const pl={type:P.t,D:cpTypes[P.t],x:P.x,z:P.dr?P.dz:P.z+2.6,room:typeof cpGetRoom==='function'?cpGetRoom(P.t):cpRooms[P.t],cool:0,st:P,door:P.dr||null};P.away=false;
+ const fin=()=>{hp=100;if(wanted<=2){wantedScore=0;evade=0}const a=P.k==='biz'?stCollect(P):0;toast(P.n+(a?': collected '+stM(a):': healed and saved'));stStore()};
+ if(P.dr&&typeof cpStartIn==='function'){cpStartIn(pl);fin()}else cpFade(()=>{cpGo(pl);fin()})}
 const stOutfits=[[0xff5a36,0x23324d],[0x1f2937,0x111827],[0xf5f5f5,0x1e3a8a],[0x2e7d32,0x3e2723],[0x7b1fa2,0x212121],[0xfbc02d,0x263238]];
 function stWear(){stS.outfit=(stS.outfit+1)%stOutfits.length;stDress();stStore();toast('Outfit '+(stS.outfit+1)+' of '+stOutfits.length)}
 function stDress(){const o=stOutfits[stS.outfit%stOutfits.length];stTry(()=>{const b=player.children[0];b.children[0].material.color.setHex(o[0]);b.children[1].material.color.setHex(o[1]);player.userData.rlShirt=new THREE.Color(o[0]);player.userData.rlPants=new THREE.Color(o[1])})}
@@ -549,7 +559,7 @@ MODS.push(function(dt){
  stT1-=dt;if(stT1<=0){stT1=.25;
   if(!stIconsDone)stTry(()=>{for(const P of stProps)if(P.x!==undefined){P.ic={x:P.x,z:P.z,label:'',color:'',glyph:''};stIconUpd(P);mpIcons.push(P.ic)}stIconsDone=true});
   const inP=stTry(()=>cpIn&&cpIn.st,null);
-  for(const P of stProps){if(P.x===undefined)continue;const o=stOwn(P);P.ring.material.color.setHex(o?0x6dff8a:0xffd23f);const d=Math.hypot(pos.x-P.x,pos.z-P.z);if(d>4)P.away=true;
+  for(const P of stProps){if(P.x===undefined)continue;const o=stOwn(P);P.ring.material.color.setHex(o?0x6dff8a:0xffd23f);const d=Math.hypot(pos.x-P.x,pos.z-P.z);if(d>4&&!inP&&!stTry(()=>!!cpIn||!!cpSeq,false))P.away=true;
    if(state==='play'&&!driving&&d<1.5&&P.away&&!stTry(()=>!!cpIn,false)){P.away=false;if(o)stEnterProp(P);else stOpenPan('<div class="st-h" style="font-size:20px;color:'+(P.k==='biz'?'#6fb1ff':'#ff8a80')+'">FOR SALE</div><div style="font-size:17px;font-weight:800;margin-top:2px">'+P.n+'</div><div class="st-s">'+P.d+(P.k==='biz'?' (collect up to '+stM(P.cap)+')':' &middot; heal, save, wardrobe, heist board')+'</div><div style="margin-top:6px">Price <b style="color:#6dff8a">'+stM(stPrice(P))+'</b> &nbsp; You have '+stM(cash)+'</div>'+stBtn('buy','BUY')+stBtn('x','Leave','g'),k=>{stClosePan();if(k==='buy'&&stBuy(P))stEnterProp(P)})}}
   stIn.style.display=(state==='play'&&(inP||stTry(()=>cpIn&&cpIn.type==='safe'&&cpSave.own,false)))?'flex':'none';
   if(stS.play>stMsgT){stMsgT+=90;if(!stS.sent.hi&&!stCallO&&!stPhOpen)stIntroCall();if(stS.play>120)stOnce('re','agent','New listings in the Property app: houses from $18,000 and businesses that pay you while you play.');if(stS.play>300&&stS.done===0)stOnce('nag','vee','Still waiting on that call. The Corner Job is an easy $25k.');if(stS.play%180<1)stStore()}}});

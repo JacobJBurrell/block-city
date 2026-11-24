@@ -3,6 +3,8 @@
 // Sports car by vicent091036 (CC BY). Fallback characters if the Rocketbox files are unreachable: Soldier and Michelle from mixamo.com, avatar from readyplayer.me, via the three.js examples repository.
 const rlCDN='https://cdn.jsdelivr.net/gh/mrdoob/three.js@';
 let rlHost='https://jacobjburrell.github.io/block-city/models/';
+// served from a local test server (python -m http.server in the repo root): use the local models/ folder
+try{if(/^https?:$/.test(location.protocol)&&/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname))rlHost=location.origin+'/models/'}catch(e){}
 let rlMaxPeople=16,rlMaxCars=6,rlMode='',rlAnims=null,rlAnims2=null,rlCar=null,rlSrc=null,rlT=0,rlMade=0,rlDriver=null,rlLd=null,rlActive=0,rlGpuT=0;
 const rlChar={},rlPool={},rlPeople=[],rlCarList=[],rlLive=[],rlNear=[],rlFail={},rlBusy={},rlQueue=[],rlUse={},rlW={};
 // avatar variants: each key is a file rb_<key>.glb on rlHost (Microsoft Rocketbox, MIT). They download only when someone of that look first comes near.
@@ -56,12 +58,22 @@ function rlPrepRB(k,g){const sc=g.scene,b={},A=rlAnims,fem=rlSex(k)==='f';sc.tra
  const C={k,scene:sc,clips:{},miss:{},scale:.0112,flip:true,rb:true,fem,b,kk,tex};
  rlMk(C,'Idle',fem?'FIdle':'Idle',A);rlMk(C,'Walk',fem?'FWalk':'Walk',A);rlMk(C,'Run',fem?'FRun':'Run',A);rlMk(C,'Sit','Sit',A);
  C.vW=rlSpd(fem?'FWalk':'Walk',A)||1.4;C.vR=rlSpd(fem?'FRun':'Run',A)||4;C.sitH=(A.Sit&&A.Sit.p?A.Sit.p[1]:59)*kk*.0112;
- rlChar[k]=C;rlT=0;if(k===chPlayerKey()&&!rlHdMsg){rlHdMsg=1;toast('HD characters loaded')}}
-let rlHdMsg=0;
-// lazy download queue: two at a time, the player's own character first
-function rlWant(k,first){if(!rlLd||rlChar[k]||rlFail[k]||rlBusy[k])return;const i=rlQueue.indexOf(k);if(i>=0){if(first){rlQueue.splice(i,1);rlQueue.unshift(k)}}else if(first)rlQueue.unshift(k);else rlQueue.push(k);rlPump()}
-function rlPump(){while(rlActive<2&&rlQueue.length){const k=rlQueue.shift();if(rlChar[k]||rlFail[k])continue;rlBusy[k]=1;rlActive++;
- const done=()=>{rlActive--;delete rlBusy[k];rlT=0;rlPump()};rlLd.load(rlHost+'rb_'+k+'.glb',g=>{try{rlPrepRB(k,g)}catch(e){rlFail[k]=1;console.log('model',e)}done()},undefined,()=>{rlFail[k]=1;done()})}}
+ try{sc.updateMatrixWorld(true);const pv=b.Bip01_Pelvis||b.Bip01;C.hip=Math.max(.6,Math.min(1.3,pv.getWorldPosition(rlV()).y*C.scale))}catch(e){C.hip=1}
+ rlChar[k]=C;rlT=0}
+// ---------- streaming: nothing big downloads before the title screen is up ----------
+// While the page builds the city and shows the title only the player's own look (and looks picked in the character screen) download; the crowd's looks
+// stream in from 1.6 s after the title is up, and everyone is a code-built person until their HD look arrives.
+// Two downloads at a time; parsing is spaced out (one model at a time, a short gap between) so the frame rate does not hitch while walking around.
+let rlStream=false,rlPlayT=0,rlParseT=0,rlDeferred=[];const rlPri={},rlBuf=[];
+function rlWant(k,first){if(!rlLd||rlChar[k]||rlFail[k]||rlBusy[k])return;if(first)rlPri[k]=1;const i=rlQueue.indexOf(k);if(i>=0){if(first){rlQueue.splice(i,1);rlQueue.unshift(k)}}else if(first)rlQueue.unshift(k);else rlQueue.push(k);rlPump()}
+function rlPump(){for(let i=0;i<rlQueue.length&&rlActive<2;){const k=rlQueue[i];if(rlChar[k]||rlFail[k]){rlQueue.splice(i,1);continue}if(!rlStream&&!rlPri[k]){i++;continue}rlQueue.splice(i,1);rlBusy[k]=1;rlActive++;
+  const done=()=>{rlActive--;delete rlBusy[k];rlT=0;rlPump()};
+  fetch(rlHost+'rb_'+k+'.glb').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(buf=>{rlBuf.push({k,buf,done});if(rlPri[k])rlParseT=0}).catch(()=>{rlFail[k]=1;done()})}}
+function rlParseTick(dt){rlParseT-=dt;if(rlParseT>0||!rlBuf.length)return;let j=0;for(let i=0;i<rlBuf.length;i++)if(rlPri[rlBuf[i].k]){j=i;break}const q=rlBuf.splice(j,1)[0];rlParseT=state==='play'?.7:.2;
+ try{rlLd.parse(q.buf,rlHost,g=>{try{rlPrepRB(q.k,g)}catch(e){rlFail[q.k]=1;console.log('model',e)}q.done()},()=>{rlFail[q.k]=1;q.done()})}catch(e){rlFail[q.k]=1;q.done()}}
+// once the title is up: start streaming the crowd, then the extra animations and the HD sports car
+function rlStreamTick(dt){if(rlStream)return;rlPlayT+=state==='chmenu'?0:dt;if(rlPlayT<1.6)return;rlStream=true;rlPump();
+ setTimeout(()=>{for(const f of rlDeferred)try{f()}catch(e){}rlDeferred.length=0},2500)}
 function rlAct(a,name){let act=a.acts[name];if(act)return act;const c=rlClip(a.C,name);if(!c)return null;act=a.mixer.clipAction(c);act.play();act.setEffectiveWeight(0);if(c.duration>2)act.time=Math.random()*c.duration;a.acts[name]=act;return act}
 function rlMake(key){const C=rlChar[key],o=THREE.SkeletonUtils.clone(C.scene),w=new THREE.Group();w.add(o);if(C.flip)w.rotation.y=Math.PI;const mats=[],B={};
  o.traverse(m=>{if(m.isMesh){m.frustumCulled=false;m.castShadow=true;m.material=m.material.clone();m.material.userData.base=m.material.color.clone();mats.push(m.material)}
@@ -88,7 +100,7 @@ function rlAttach(g){const key=rlKey(g);if(!key)return;const a=rlGet(key);if(!a)
   if(C.rb){if(/body/.test(m.name)){if(u.rlTint)m.color.lerp(u.rlTint,.28);else if(u.rlShirt&&/^[mf]\d/.test(key))m.color.lerp(u.rlShirt,.1)}}
   else if(key==='sol'){if(u.rlTint)m.color.multiply(u.rlTint);else if(u.rlType==='cop')m.color.setHex(0x6f8dff);else if(/^g\d/.test(u.rlType||''))m.color.setHex(0xb98cff)}
   else if(key==='rpm'){if(/Outfit_Top/.test(m.name)&&u.rlShirt)m.color.copy(u.rlShirt).lerp(wh,.8);else if(/Outfit_Bottom/.test(m.name)&&u.rlPants)m.color.copy(u.rlPants).lerp(wh,.5)}else if(u.rlShirt)m.color.copy(u.rlShirt).lerp(wh,.7)}
- a.w.scale.setScalar(C.scale*h);a.w.position.set(0,u.rlSeat?1.05-(C.sitH||.66)*h:0,0);a.w.rotation.z=0;a.aim=0;a.hit=0;a.hy=0;a.hp=0;a.st=0;
+ a.w.scale.setScalar(C.scale*h);a.w.position.set(0,u.rlSeat?1.05-(C.sitH||.66)*h:0,0);a.w.rotation.set(0,C.flip?Math.PI:0,0);a.aim=0;a.hit=0;a.hy=0;a.hp=0;a.st=0;
  for(const n in a.acts)a.acts[n].setEffectiveWeight(n==='Idle'?1:0);if(u.rlAct&&C.rb)rlStart(a,u.rlAct);
  if(C.gpuFree){C.gpuFree=0}rlUse[key]=T;
  g.children[0].visible=false;g.add(a.w);a.g=g;g.getWorldPosition(a.lp);a.sp=0;a.yaw=g.rotation.y;u.av=a;rlLive.push(a)}
@@ -122,21 +134,25 @@ function rlCarReady(sc){sc.updateMatrixWorld(true);const wn=['wheel_fl','wheel_f
  add(mg(B.body),rest,'rlBody',1);add(mg(B.rest),rest,'rlRest');add(mg(B.light),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}),'rlLight');
  add(mg(B.glass),new THREE.MeshStandardMaterial({color:0x10151b,metalness:1,roughness:.05,transparent:true,opacity:.72}),'rlGlass');
  wn.forEach((n,i)=>{const o=new THREE.Group(),inn=new THREE.Group();wh[n].node.matrixWorld.decompose(o.position,o.quaternion,o.scale);inn.name='rlW'+i;inn.add(new THREE.Mesh(mg(wh[n].g),rest));o.add(inn);root.add(o)});
- rlCar={root};rlT=0;toast('HD models loaded')}
+ rlCar={root};rlT=0}
 function rlSkin(g){const u=g.userData;if(!u.rlOld){u.rlOld=g.children.filter(o=>!o.userData.rlKeep&&o!==rlDriver);u.rlPaint=g.children[0].material;for(const o of u.rlOld)if(o.isMesh)o.scale.y=.8}
  if(!u.rl){const c=rlCar.root.clone(true);c.getObjectByName('rlBody').material=u.rlPaint;u.rlW=[0,1,2,3].map(i=>c.getObjectByName('rlW'+i));u.rl=c;g.add(c);if(u.rlBurnt){c.traverse(o=>{if(o.material){o.material=o.material.clone();if(o.material.color)o.material.color.multiplyScalar(.12);o.material.vertexColors=false;o.material.needsUpdate=true}})}}}
 function rlShow(g,on){const u=g.userData;if(on)rlSkin(g);if(!u.rlOld)return;for(const o of u.rlOld)o.visible=!on;if(u.rl)u.rl.visible=on;if(u.rlX){for(let i=0;i<3;i++)u.rlX[i].position.y=u.rlX[i].userData.y0-(on?.42:.3);u.rlX[3].visible=!on}}
+const rlSelP=rlV(),rlShown={};
 function rlSelect(){const P=new THREE.Vector3(pos.x,0,pos.z);
  for(let i=rlPeople.length-1;i>=0;i--){const g=rlPeople[i];if(!g.parent&&!g.userData.rlSeat&&g!==player){if(g.userData.av)rlRelease(g.userData.av);rlPeople.splice(i,1)}}
- if(rlMode){const c=[];for(const g of rlPeople){const u=g.userData,vis=g.visible&&!!g.parent;let d=1e9;if(u.rlSeat){if(vis)d=-.5}else if(g===player){if(vis)d=-1}else if(g.parent===scene&&vis)d=Math.hypot(g.position.x-P.x,g.position.z-P.z);u.rlD=d;if(d<70&&rlKey(g))c.push(g)}
+ if(rlMode){const c=[];for(const g of rlPeople){const u=g.userData,vis=g.visible&&!!g.parent;let d=1e9;if(u.rlSeat){if(vis){if(u.rlNpc){g.getWorldPosition(rlSelP);d=Math.hypot(rlSelP.x-P.x,rlSelP.z-P.z)}else d=-.5}}else if(g===player){if(vis)d=-1}else if(g.parent===scene&&vis)d=Math.hypot(g.position.x-P.x,g.position.z-P.z);u.rlD=d;if(d<70&&rlKey(g))c.push(g)}
   c.sort((a,b)=>a.userData.rlD-b.userData.rlD);const top=c.filter((g,i)=>i<rlMaxPeople||g.userData.rlD<0);
-  for(const a of rlLive.slice())if(top.indexOf(a.g)<0||rlKey(a.g)!==a.key)rlRelease(a);for(const g of top)if(!g.userData.av)rlAttach(g)}
+  for(const a of rlLive.slice())if(top.indexOf(a.g)<0||rlKey(a.g)!==a.key)rlRelease(a);
+  // a look shown for the first time uploads its textures (a frame hitch on phones): at most one new look per pass, the rest stay code-built a moment longer
+  let fresh=0;for(const g of top)if(!g.userData.av){const k=rlKey(g);if(k&&!rlShown[k]&&!g.userData.rlMe){if(fresh++)continue;rlShown[k]=1}rlAttach(g)}}
  if(rlCar){for(let i=rlCarList.length-1;i>=0;i--)if(!rlCarList[i].parent)rlCarList.splice(i,1);
   const c=[];for(const g of rlCarList){const d=(driving&&driving.m===g)?-1:g.position.distanceTo(P);g.userData.rlD=d;if(d<60)c.push(g);if(!g.userData.rlOld){const u=g.userData;u.rlOld=g.children.filter(o=>!o.userData.rlKeep&&o!==rlDriver);u.rlPaint=g.children[0].material;for(const o of u.rlOld)if(o.isMesh)o.scale.y=.8}}
   c.sort((a,b)=>a.userData.rlD-b.userData.rlD);const top=c.slice(0,rlMaxCars);for(const g of rlNear)if(top.indexOf(g)<0)rlShow(g,false);for(const g of top)rlShow(g,true);rlNear.length=0;for(const g of top)rlNear.push(g)}}
 const rlF=rlV(),rlU=rlV(),rlR=rlV(),rlGq=rlQ(),rlGp=rlV();
 function rlDir(f,u,r){return rlPd.set(0,0,0).addScaledVector(rlF,f).addScaledVector(rlU,u).addScaledVector(rlR,r).normalize()}
-function rlPose(a,dt){const g=a.g,u=g.userData,B=a.B,seat=u.rlSeat,dead=!seat&&g.rotation.x<-1,me=g===player;
+function rlPose(a,dt){const g=a.g,u=g.userData,B=a.B,seat=u.rlSeat,dead=!seat&&(g.rotation.x<-1||!!u.rlDie),me=g===player;
+ if(u.rlDie&&!seat){if(a.gun)a.gun.visible=false;rlDiePose(a);return}
  g.getWorldQuaternion(rlGq);rlF.set(0,0,-1).applyQuaternion(rlGq);rlU.set(0,1,0).applyQuaternion(rlGq);rlR.set(1,0,0).applyQuaternion(rlGq);
  const P=(b,c,f,up,r,w)=>rlPoint(B[b],B[c],rlDir(f,up,r),w===undefined?1:w);
  if(a.gun&&(seat||dead))a.gun.visible=false;
@@ -151,11 +167,12 @@ function rlPose(a,dt){const g=a.g,u=g.userData,B=a.B,seat=u.rlSeat,dead=!seat&&g
  if(me&&!onGround&&a.aim<.5){for(const s of[-1,1]){const k=s<0?'L':'R';P(k+'_UpperArm',k+'_Forearm',.25,.35,s*.85,.7)}}
  if(a.hit>.02)rlTwist(B.Spine1,rlR,-.4*a.hit);
  if(a.gun)a.gun.visible=a.aim>.3;
- if(a.aim>.02){P('R_UpperArm','R_Forearm',1,-.08,.02,a.aim);P('R_Forearm','R_Hand',1,-.02,-.12,a.aim);P('L_UpperArm','L_Forearm',.72,-.5,.34,a.aim*.9);P('L_Forearm','L_Hand',.7,.28,.66,a.aim*.9)}}
+ if(a.aim>.02){P('R_UpperArm','R_Forearm',1,-.08,.02,a.aim);P('R_Forearm','R_Hand',1,-.02,-.12,a.aim);P('L_UpperArm','L_Forearm',.72,-.5,.34,a.aim*.9);P('L_Forearm','L_Hand',.7,.28,.66,a.aim*.9)}
+ if(u.rlGst)rlGstPose(a,P,dt)}
 function rlSeatDriver(){const c=driving,ok=rlMode==='rb'&&rlChar.player&&c&&!c.vhT&&!c.vhBike&&!c.custom&&!c.dead&&c.m.userData.rl&&c.m.userData.rl.visible;
  if(ok){if(rlDriver.parent!==c.m){c.m.add(rlDriver);rlDriver.position.set(-.37,-.58,.34);rlDriver.rotation.set(0,0,0);rlT=0}}else if(rlDriver.parent){rlDriver.parent.remove(rlDriver);if(rlDriver.userData.av)rlRelease(rlDriver.userData.av)}}
 // free the GPU copy of looks nobody has used for a while (they upload again when needed), so wandering the city does not keep piling up texture memory
-function rlGpuTrim(){for(const k in rlChar){const C=rlChar[k];if(!C||!C.rb||C.gpuFree||k===chPlayerKey())continue;if(rlLive.some(a=>a.key===k))rlUse[k]=T;else if(T-(rlUse[k]||0)>30){for(const t of C.tex)t.dispose();C.gpuFree=1}}}
+function rlGpuTrim(){for(const k in rlChar){const C=rlChar[k];if(!C||!C.rb||C.gpuFree||k===chPlayerKey())continue;if(rlLive.some(a=>a.key===k))rlUse[k]=T;else if(T-(rlUse[k]||0)>30){for(const t of C.tex)t.dispose();C.gpuFree=1;delete rlShown[k]}}}
 const rlHd=rlV(),rlTg=rlV();
 // living layer on top of the clips: head turns toward people and the player, glances around, blinks, breathes, has a personal posture
 function rlLife(a,dt,s){const g=a.g,u=g.userData,B=a.B;if(!B||!B.Head)return;
@@ -174,9 +191,12 @@ function rlLife(a,dt,s){const g=a.g,u=g.userData,B=a.B;if(!B||!B.Head)return;
  a.blT-=dt;if(a.blT<=0){a.blT=2+Math.random()*4.5;a.bl=.16}
  if(a.bl>0){a.bl-=dt;const c=Math.sin(Math.max(0,a.bl)/.16*Math.PI);rlTwist(B.LEyeBlinkTop,rlR,-c*rlBlinkA);rlTwist(B.REyeBlinkTop,rlR,-c*rlBlinkA);rlTwist(B.LEyeBlinkBottom,rlR,c*rlBlinkA*.3);rlTwist(B.REyeBlinkBottom,rlR,c*rlBlinkA*.3)}}
 let rlBlinkA=.45;
-function rlTick(dt){chTick(dt);rlSeatDriver();rlT-=dt;if(rlT<=0){rlT=.35;try{rlSelect()}catch(e){console.log('rl',e)}}
+let rlBootEl=document.getElementById('rlBoot');
+function rlTick(dt){if(rlBootEl){const e=rlBootEl;rlBootEl=null;e.style.opacity=0;setTimeout(()=>{if(e.parentNode)e.parentNode.removeChild(e)},450)}
+ rlStreamTick(dt);if(rlLd)rlParseTick(dt);chTick(dt);rlSeatDriver();rlT-=dt;if(rlT<=0){rlT=.35;try{rlSelect()}catch(e){console.log('rl',e)}}
  rlGpuT-=dt;if(rlGpuT<=0){rlGpuT=5;try{rlGpuTrim()}catch(e){}}
- for(const a of rlLive){const g=a.g,u=g.userData,C=a.C,seat=u.rlSeat,dead=!seat&&g.rotation.x<-1,air=g===player&&!onGround;
+ try{rlDieTick(dt);rlDrvTick(dt)}catch(e){if(rlErr++<3)console.log('rl',e)}
+ for(const a of rlLive){const g=a.g,u=g.userData,C=a.C,seat=u.rlSeat,dead=!seat&&(g.rotation.x<-1||!!u.rlDie),air=g===player&&!onGround;
   g.getWorldPosition(rlGp);const d=seat?0:Math.hypot(rlGp.x-a.lp.x,rlGp.z-a.lp.z)/Math.max(dt,.001);a.lp.copy(rlGp);a.sp+=(Math.min(d,16)-a.sp)*Math.min(1,dt*8);
   const s=a.sp,want=rlW;for(const n in want)delete want[n];
   let ov=u.rlAct;if(ov&&ov.until&&T>ov.until){u.rlAct=ov=null}if(u.rlIdleV&&T>(u.rlIdleT||0))u.rlIdleV=null;
@@ -192,8 +212,119 @@ function rlTick(dt){chTick(dt);rlSeatDriver();rlT-=dt;if(rlT<=0){rlT=.35;try{rlS
   if(a.acts.Sprint)a.acts.Sprint.timeScale=rlCl(s/(C.vS||7),.8,1.6);for(const n of['WalkCool','Stroll'])if(a.acts[n])a.acts[n].timeScale=rlCl(s/(C['v'+n]||C.vW),.55,1.7);
   a.mixer.update(dead?0:dt);
   if(!seat&&!dead){let dy=g.rotation.y-a.yaw;dy=((dy+Math.PI*3)%(Math.PI*2))-Math.PI;a.yaw=g.rotation.y;const lean=rlCl(-dy/Math.max(dt,.001)*.045*Math.min(1,s/5),-.22,.22);a.w.rotation.z+=(lean-a.w.rotation.z)*Math.min(1,dt*6)}else a.w.rotation.z=0;
-  if(a.B){try{rlPose(a,dt)}catch(e){}if(!dead)try{rlLife(a,dt,s)}catch(e){}}}
+  if(u.rlDie&&!seat){try{rlDiePose(a)}catch(e){if(rlErr++<3)console.log('rl die',e)}}
+  else if(a.B){try{rlPose(a,dt)}catch(e){}if(!dead)try{rlLife(a,dt,s)}catch(e){}}}
  for(const g of rlNear){const u=g.userData;if(u.rlW&&u.wheels)for(let i=0;i<4;i++)if(u.wheels[i])u.rlW[i].rotation.x=u.wheels[i].rotation.x}}
+// ---------- deaths: a ragdoll-like fall (stagger, knees give, the body hits the ground and settles) that stays down ----------
+// rlKill(person, from, kind): from = where the hit came from (Vector3), kind 'shot'|'player'|'car'|'boom'|'eject'. Works on HD avatars (bones) and code-built people (limb groups).
+const rlDying=[],rlKq=rlQ(),rlKq2=rlQ(),rlKv=rlV(),rlKw=rlV(),rlAX=new THREE.Vector3(1,0,0),rlAY=new THREE.Vector3(0,1,0),rlWup=new THREE.Vector3(0,1,0),rlKt=rlV();
+let rlErr=0,rlBoomP=null,rlHitFrom=null;
+const rlKinds={shot:[.16,.72,.55,0,1,.8],player:[.3,.85,.6,0,1,.8],car:[0,.62,2,.55,.3,1],boom:[0,.85,3.6,1.15,.3,1],eject:[.05,.7,.7,.15,.6,.6]}; // stagger, fall time, slide, lift, knees, flail
+function rlKill(g,from,kind,spd){if(!g||!g.userData)return;const u=g.userData;if(u.rlDie)return;kind=rlKinds[kind]?kind:'shot';const K=rlKinds[kind];
+ const yaw=g.rotation.y,c=Math.cos(yaw),s=Math.sin(yaw);let fx=from?g.position.x-from.x:0,fz=from?g.position.z-from.z:0,l=Math.hypot(fx,fz);
+ if(l<.05){const b=Math.random()<.6?1:-1;fx=s*b;fz=c*b;l=1}fx/=l;fz/=l;
+ const lx=fx*c-fz*s,lz=fx*s+fz*c,fd=lz<0;let dl=fd?Math.atan2(-lx,-lz):Math.atan2(lx,lz);dl=rlCl(dl+(Math.random()-.5)*.5,-1.25,1.25);
+ let sl=K[2]*(.8+Math.random()*.4);if(kind==='car')sl=Math.min(7,2+(spd||10)*.16);
+ // do not slide through walls
+ rlKt.set(g.position.x+fx*sl,g.position.y,g.position.z+fz*sl);if(collide(rlKt,.55))sl=Math.max(0,(rlKt.x-g.position.x)*fx+(rlKt.z-g.position.z)*fz-.35);
+ g.rotation.x=0;g.rotation.z=0;
+ u.rlDie={t:0,k:kind,fd,dl,lx,lz,sl,st:K[0],dur:K[1],lift:K[3]*(kind==='car'?Math.min(1.6,.6+(spd||10)*.03):1),kn:K[4],fl:K[5],sd:Math.random()<.5?1:-1,cur:null};
+ if(rlDying.indexOf(g)<0)rlDying.push(g)}
+function rlDieCur(D,H){const t=D.t,p=rlCl((t-D.st)/D.dur,0,1),e=p*p,sm=p*p*(3-2*p),lean=.2*rlCl(t/Math.max(.01,D.st),0,1)*(1-p);
+ let th=lean+(Math.PI/2-lean)*e,hy=H-(H-.13)*Math.pow(e,.85)-.07*lean/.2+D.lift*Math.sin(p*Math.PI)*(1-p*.3);
+ if(p>=1){const b=t-D.st-D.dur;hy+=.07*Math.abs(Math.sin(b*11))*Math.exp(-b*7)}
+ return {th,hy,sf:(D.k==='car'||D.k==='boom')?Math.min(1,p*1.15):sm,dl:D.dl*sm,kn:Math.sin(p*Math.PI)*D.kn,fl:Math.sin(Math.min(1,p*1.3)*Math.PI)*D.fl,L:rlCl((p-.5)/.5,0,1)}}
+// body root: twist toward the fall, tip over around the hip, the hip drops to the ground and slides
+function rlDieRoot(node,D,c,H,flip){rlKq.setFromAxisAngle(rlAY,c.dl);rlKq2.setFromAxisAngle(rlAX,D.fd?-c.th:c.th);rlKq.multiply(rlKq2);
+ rlKv.set(D.lx*D.sl*c.sf,c.hy,D.lz*D.sl*c.sf);rlKw.set(0,H,0).applyQuaternion(rlKq);node.position.copy(rlKv).sub(rlKw);node.quaternion.copy(rlKq);if(flip)node.quaternion.multiply(rlKq2.setFromAxisAngle(rlAY,Math.PI))}
+function rlDiePose(a){const g=a.g,u=g.userData,D=u.rlDie,B=a.B,C=a.C,H=(C.hip||1)*(u.rlH||1);if(!D)return;const c=D.cur||(D.cur=rlDieCur(D,H));
+ rlDieRoot(a.w,D,c,H,C.flip);if(!B)return;
+ g.getWorldQuaternion(rlGq);rlGq.multiply(rlKq.setFromAxisAngle(rlAY,c.dl)).multiply(rlKq2.setFromAxisAngle(rlAX,D.fd?-c.th:c.th));
+ rlF.set(0,0,-1).applyQuaternion(rlGq);rlU.set(0,1,0).applyQuaternion(rlGq);rlR.set(1,0,0).applyQuaternion(rlGq);
+ const sd=D.sd,L=c.L,fl=c.fl*(1-L),kn=c.kn*(1-L);
+ // limb directions in the body frame (toward head, body right, chest) plus world up so limbs rest on, not under, the ground
+ const Q=(b,ch,uu,r,f,up,w)=>{if(w<=.01||!B[b]||!B[ch])return;rlPd.set(0,0,0).addScaledVector(rlU,uu).addScaledVector(rlR,r).addScaledVector(rlF,f).addScaledVector(rlWup,up).normalize();rlPoint(B[b],B[ch],rlPd,w)};
+ for(const s of[-1,1]){const k=s<0?'L':'R',m=s===sd;
+  if(D.fd){Q(k+'_UpperArm',k+'_Forearm',.05,s*.4,.75,0,fl);Q(k+'_Forearm',k+'_Hand',.1,s*.15,.9,0,fl)}// reach out to break the fall
+  else{Q(k+'_UpperArm',k+'_Forearm',.3,s*.55,.5,.2,fl);Q(k+'_Forearm',k+'_Hand',.6,s*.3,.4,.3,fl)}// arms fly up
+  Q(k+'_Thigh',k+'_Calf',-1,s*.1,kn*.9,0,kn);Q(k+'_Calf',k+'_Foot',-1,s*.05,-kn*.8,0,kn);
+  if(m){Q(k+'_UpperArm',k+'_Forearm',.2,s*.85,0,.05,L);Q(k+'_Forearm',k+'_Hand',.7,-s*.45,0,.05,L)}// one arm bent up by the head
+  else{Q(k+'_UpperArm',k+'_Forearm',-.7,s*.55,0,.05,L);Q(k+'_Forearm',k+'_Hand',-.75,s*.4,0,.05,L)}// the other loose by the side
+  if(D.fd){Q(k+'_Thigh',k+'_Calf',-1,s*.17,0,.03,L);Q(k+'_Calf',k+'_Foot',m?-.75:-1,s*.07,0,m?.5:.03,L)}
+  else{Q(k+'_Thigh',k+'_Calf',m?-.82:-1,s*(m?.25:.15),0,m?.48:.03,L);Q(k+'_Calf',k+'_Foot',-1,s*.08,0,m?-.4:.02,L)}}
+ if(L>.02){rlTwist(B.Head,rlU,sd*.75*L);rlTwist(B.Spine1,rlF,sd*.1*L)}
+ if(c.fl>.02&&B.Spine1)rlTwist(B.Spine1,rlR,(D.fd?.25:-.3)*c.fl*(1-L))}
+function rlDieLimbs(g,D,c){const u=g.userData;if(!u.armL)return;const L=c.L,fl=c.fl*(1-L);
+ u.armL.rotation.z=-(.25+.9*Math.max(L,fl));u.armR.rotation.z=.25+.9*Math.max(L,fl);u.legL.rotation.z=-.12*L;u.legR.rotation.z=.12*L;
+ u.armL.rotation.x=u.armR.rotation.x=fl*.8;u.legL.rotation.x=u.legR.rotation.x=c.kn*.9*(1-L)}
+function rlRevive(g){const u=g.userData;if(!u)return;u.rlDie=null;const b=g.children[0];if(b&&b.isGroup&&b!==(u.av&&u.av.w)){b.position.set(0,0,0);b.quaternion.identity()}
+ for(const k of['armL','armR','legL','legR'])if(u[k])u[k].rotation.z=0;const a=u.av;if(a&&a.w){a.w.position.set(0,u.rlSeat?a.w.position.y:0,0);a.w.rotation.set(0,a.C.flip?Math.PI:0,0)}}
+function rlDieTick(dt){for(let i=rlDying.length-1;i>=0;i--){const g=rlDying[i],u=g.userData,D=u.rlDie;if(!D){rlDying.splice(i,1);continue}
+  const alive=g===player?state!=='dead':(u.rlSh?!u.rlSh.dead:(u.path?!u.dead:false));
+  if(alive||(!g.parent&&g!==player)){rlRevive(g);rlDying.splice(i,1);continue}
+  D.t+=dt;D.cur=null;const b=g.children[0];if(b&&b.isGroup){const c=rlDieCur(D,1.05);rlDieRoot(b,D,c,1.05,false);rlDieLimbs(g,D,c)}}
+ // GTA-style: the camera lifts to look down at your body while WASTED is on screen
+ if(state==='dead'&&!driving){camPitch+=(.62-camPitch)*Math.min(1,dt*.9)}}
+function rlKind(from){if(from&&from===rlBoomP)return 'boom';if(driving&&driving.m&&from===driving.m.position)return 'car';return 'shot'}
+{const kp=killPed;killPed=function(q,from){const was=q.userData.dead;kp(q,from);if(!was&&q.userData.dead){q.userData.deadT=1;rlKill(q,from,rlKind(from),driving?Math.abs(driving.speed||0):0)}}}
+{const ks=killShooter;killShooter=function(s,from){const was=s.dead;ks(s,from);if(!was&&s.dead&&s.g){s.deadT=Math.max(s.deadT,.35);s.g.userData.rlSh=s;rlKill(s.g,from,rlKind(from),driving?Math.abs(driving.speed||0):0)}}}
+{const ex=explode;explode=function(p){const o=rlBoomP;rlBoomP=p;try{ex(p)}finally{rlBoomP=o}}}
+{const es2=enemyShoot;enemyShoot=function(s){rlHitFrom=s&&s.g?s.g.position.clone():null;es2(s)}}
+{const ex2=explode;explode=function(p){if(p&&Math.hypot(p.x-pos.x,p.z-pos.z)<10)rlHitFrom=p.clone();ex2(p)}}
+// the player: on foot falls where they stand; in a car the body ends up beside the driver's door
+let rlPitch0=null;
+function rlPlayerDown(dv,from){let kind='player';rlPitch0=camPitch;
+ if(dv&&dv.m){const m=dv.m,y=m.rotation.y,c=Math.cos(y),s=Math.sin(y),side=dv.vhBike?-.6:-1.75;pos.x=m.position.x+c*side+s*.3;pos.z=m.position.z-s*side+c*.3;
+  let gy=chGround(pos.x,pos.z);pos.y=gy>.31?gy-.3:.3;collide(pos,.5);facing=y;player.rotation.y=y;from=m.position.clone();kind='eject'}
+ player.position.copy(pos);player.visible=true;rlKill(player,from,kind)}
+{const d0=die;die=function(){const dv=driving,from=rlHitFrom;d0();try{rlPlayerDown(dv,from)}catch(e){console.log('rl die',e)}rlHitFrom=null}}
+{const r0=respawn;respawn=function(){rlRevive(player);const i=rlDying.indexOf(player);if(i>=0)rlDying.splice(i,1);if(rlPitch0!==null){camPitch=rlPitch0;rlPitch0=null}r0()}}
+// ---------- gestures: procedural arm poses layered on the clips (Rocketbox has no fight or surrender clips) ----------
+// rlGesture(person,'hands'|'scared'|'guard'|'punch'|'stagger'|'point', seconds[, target Vector3/Object3D]); null clears
+function rlGesture(g,n,dur,tg){if(!g||!g.userData)return;const u=g.userData;if(!n){u.rlGst=null;return}u.rlGst={n,t0:T,d:dur||1,tg:tg||null,sd:n==='punch'?(u.rlPunchS=-(u.rlPunchS||-1)):(Math.random()<.5?1:-1)}}
+function rlGstPose(a,P,dt){const g=a.g,u=g.userData,G=u.rlGst,B=a.B;if(!G)return;const t=T-G.t0;if(t>G.d){u.rlGst=null;return}
+ const w=Math.max(0,Math.min(1,t/.16,(G.d-t)/.2));if(w<=0)return;
+ if(G.n==='hands'){for(const s of[-1,1]){const k=s<0?'L':'R';P(k+'_UpperArm',k+'_Forearm',.12,.72,s*.66,w);P(k+'_Forearm',k+'_Hand',.08,1,s*.06,w)}}
+ else if(G.n==='scared'){for(const s of[-1,1]){const k=s<0?'L':'R';P(k+'_UpperArm',k+'_Forearm',.62,.12,s*.34,w);P(k+'_Forearm',k+'_Hand',.22,.95,-s*.3,w)}if(B.Spine1)rlTwist(B.Spine1,rlR,.2*w)}
+ else if(G.n==='guard'||G.n==='punch'){for(const s of[-1,1]){const k=s<0?'L':'R';P(k+'_UpperArm',k+'_Forearm',.38,-.62,s*.4,w);P(k+'_Forearm',k+'_Hand',.32,1,-s*.18,w)}
+  if(G.n==='punch'){const s=G.sd,k=s<0?'L':'R',p=t/G.d,wind=p<.3?Math.sin(p/.3*Math.PI*.5):Math.max(0,1-(p-.3)/.12),ex=p<.3?0:(p<.5?(p-.3)/.2:Math.max(0,1-(p-.5)/.35));
+   if(wind>.01){P(k+'_UpperArm',k+'_Forearm',-.3,-.45,s*.6,wind*w);P(k+'_Forearm',k+'_Hand',.75,.65,0,wind*w)}
+   if(ex>.01){P(k+'_UpperArm',k+'_Forearm',1,.1,-s*.1,ex*w);P(k+'_Forearm',k+'_Hand',1,.08,-s*.06,ex*w)}
+   if(B.Spine1)rlTwist(B.Spine1,rlU,-s*(.4*ex-.25*wind)*w)}}
+ else if(G.n==='stagger'){const p=t/G.d,k2=Math.sin(Math.min(1,p*1.6)*Math.PI)*w;if(B.Spine1)rlTwist(B.Spine1,rlR,-.5*k2);if(B.Head)rlTwist(B.Head,rlR,-.35*k2);
+  for(const s of[-1,1]){const k=s<0?'L':'R';P(k+'_UpperArm',k+'_Forearm',.3,-.25,s*.9,k2*.8)}}
+ else if(G.n==='point'&&G.tg){const tp=G.tg.isVector3?G.tg:G.tg.position;if(tp){rlPd.set(tp.x-g.position.x,.3*Math.hypot(tp.x-g.position.x,tp.z-g.position.z)/8,tp.z-g.position.z).normalize();rlPoint(B.R_UpperArm,B.R_Forearm,rlPd,w);rlPoint(B.R_Forearm,B.R_Hand,rlPd,w)}}}
+// shooters that are hit but not killed stagger back a little
+{const dm2=damage;damage=function(t,d){const s=t&&t.kind==='sh'?t.obj:null,h0=s?s.hp:0;dm2(t,d);if(s&&!s.dead&&s.hp<h0&&s.g){rlGesture(s.g,'stagger',.45);const dx=s.g.position.x-pos.x,dz=s.g.position.z-pos.z,l=Math.hypot(dx,dz)||1;s.g.position.x+=dx/l*.3;s.g.position.z+=dz/l*.3;collide(s.g.position,.45)}}}
+// ---------- NPC drivers: a seated person behind the wheel of traffic, police, ambulances and island cars near you ----------
+const rlDrv=[],rlDrvL=[],rlDrvN=[];let rlDrvT=0,rlDrvMax=6;
+function rlDrvMake(){const g=makePerson(0x3a4250,0x23262e,[0xf1c27d,0xc68642,0x8d5524,0xe0ac69][Math.floor(Math.random()*4)]),u=g.userData;u.rlSeat='car';u.rlNpc=1;u.rlKeep=true;
+ g.traverse(o=>{if(o.isMesh)o.castShadow=false});u.legL.rotation.x=u.legR.rotation.x=1.45;u.armL.rotation.x=u.armR.rotation.x=1.05;
+ const ch=g.children[0].children[0],ob=ch.onBeforeRender;ch.onBeforeRender=function(){ob.apply(this,arguments);u.kneeL.rotation.x=u.kneeR.rotation.x=-1.5};const d={g,car:null};rlDrv.push(d);return d}
+// seat from the car's shape: isles car specs give cabin, roof and belt line; plain city cars use the sports-car seat
+function rlDrvSeat(m){const u=m.userData;if(u.rlSeatP)return u.rlSeatP;let x=-.4,y=.47,z=.34;const S=u.isType&&typeof isSpecs!=='undefined'?isSpecs[u.isType]:null;
+ if(S){if(S.box){x=-S.W/2+.62;y=S.belt-.22;z=-S.L/2+S.ws+.5}else{const a=S.cf-S.rf,b=S.cr+(S.rr||0);x=-S.W/2+.6;y=Math.max(S.gc+.1,Math.min(S.belt-.38,S.roof-.98));z=Math.min(-Math.max(a,b)+.3,-(a+b)/2+.05)}}
+ const sc=m.scale;return u.rlSeatP={x:x/sc.x,y:(y-1.05)/sc.y,z:z/sc.z,s:[1/sc.x,1/sc.y,1/sc.z]}}
+function rlDrvCars(out){out.length=0;for(const t of traffic)if(!t.dead&&t.m)out.push(t.m);for(const pc of police)if(!pc.dead&&!pc.gone&&!pc.deployed)out.push(pc.m);
+ for(const c of cars)if(c.isLoop&&!c.dead&&c!==driving&&c.m)out.push(c.m);
+ if(typeof lfAmb!=='undefined'&&lfAmb&&lfAmb.m&&(lfAmb.ph===0||lfAmb.ph===4))out.push(lfAmb.m);return out}
+// the shared car glass is opaque; cars with a driver get a tinted see-through copy while the driver sits in them
+let rlGlassT=null;
+function rlDrvGlass(m,on){if(!CM||!CM.glass)return;if(!rlGlassT){rlGlassT=CM.glass.clone();rlGlassT.transparent=true;rlGlassT.opacity=.55;rlGlassT.roughness=.08}
+ for(const o of m.children)if(o.isMesh){if(on&&o.material===CM.glass)o.material=rlGlassT;else if(!on&&o.material===rlGlassT)o.material=CM.glass}}
+function rlDrvOff(d){const g=d.g;if(d.car)rlDrvGlass(d.car,false);if(g.parent)g.parent.remove(g);if(g.userData.av)rlRelease(g.userData.av);d.car=null}
+function rlDrvOn(d,m){const S=rlDrvSeat(m),g=d.g,u=g.userData;g.position.set(S.x,S.y,S.z);g.scale.set(S.s[0],S.s[1],S.s[2]);g.rotation.set(0,0,0);m.add(g);d.car=m;rlDrvGlass(m,true);
+ const cop=!!m.userData.red,med=m.userData.isType==='ambulance'||(typeof lfAmb!=='undefined'&&lfAmb&&lfAmb.m===m),ty=cop?'cop':(med?'med':null);
+ if(ty){if(u.rlType!==ty){u.rlType=ty;u.rlVar=null}}else if(u.rlType==='cop'||u.rlType==='med'||!u.rlType){u.rlType=rlPick(rlCiv);u.rlVar=null}
+ try{g.children[0].children[0].material.color.setHex(cop?0x1d3557:(med?0xf2f2f2:new THREE.Color().setHSL(Math.random(),.5,.45).getHex()))}catch(e){}rlT=0}
+// a car that burns loses its driver first (char() would blacken the pooled person for good)
+{const c0=char;char=function(m){for(const d of rlDrv)if(d.car===m)rlDrvOff(d);c0(m)}}
+function rlDrvTick(dt){for(const d of rlDrv){const m=d.car;if(m&&(!m.parent||(driving&&driving.m===m)))rlDrvOff(d)}
+ rlDrvT-=dt;if(rlDrvT>0)return;rlDrvT=.4;const L=rlDrvCars(rlDrvL),N=rlDrvN;N.length=0;
+ for(const m of L){const dd=Math.hypot(m.position.x-pos.x,m.position.z-pos.z),S=m.userData.isType&&typeof isSpecs!=='undefined'?isSpecs[m.userData.isType]:null;if(S&&S.box)continue;// vans, trucks and buses have a solid cab: nobody to see
+  if(dd<46&&!(driving&&driving.m===m))N.push([dd,m])}N.sort((a,b)=>a[0]-b[0]);if(N.length>rlDrvMax)N.length=rlDrvMax;
+ for(const d of rlDrv)if(d.car&&!N.some(x=>x[1]===d.car))rlDrvOff(d);
+ for(const x of N){const m=x[1];if(rlDrv.some(d=>d.car===m))continue;let d=rlDrv.find(d=>!d.car);if(!d){if(rlDrv.length>=rlDrvMax)break;d=rlDrvMake()}rlDrvOn(d,m)}}
 // ---------- character select, outfits and spawn point (GTA-style) ----------
 const chChoices=[{k:'player',n:'Marcus',fb:[0x4a3326,0x2a3040,0xd9a57a]},{k:'m3',n:'Andre',fb:[0x3b5b8a,0x2a3550,0x6b4a33]},{k:'m9',n:'Tyler',fb:[0xb3261e,0x2f3d5a,0xe0b89a]},
  {k:'m13',n:'Daniel',fb:[0x8a8f98,0xb9a27a,0xd8b090]},{k:'m16',n:'Leo',fb:[0x1f3a68,0xf2f2f2,0xd9a57a]},{k:'f12',n:'Jess',fb:[0x5a5a5a,0x3a5a8a,0xf0c8a8]},
@@ -324,13 +455,19 @@ function chTick(dt){if(!chWired){chWired=1;chFallback();chSetSpawn();chBtnSync()
   if(ok&&Math.abs(x)<HALF+700&&Math.abs(z)<HALF+700&&!chWet(x,z)&&(!chS.last||Math.hypot(x-chS.last[0],z-chS.last[1])>3)){chS.last=[Math.round(x*10)/10,Math.round(z*10)/10,Math.round(facing*100)/100];chSave()}}}
 addEventListener('keydown',e=>{if(!chOpenF)return;if(e.key==='Escape'){chClose();e.stopImmediatePropagation();return}if(!(e.target&&e.target.classList&&e.target.classList.contains('ch-in')))e.stopImmediatePropagation()},true);
 MODS.push(rlTick);
-if(THREE.GLTFLoader&&THREE.SkeletonUtils){const L=new THREE.GLTFLoader(),G=rlCDN+'r160/examples/models/gltf/',safe=f=>g=>{try{f(g)}catch(e){console.log('model',e)}},no=()=>{};
- if(THREE.DRACOLoader){const D=new THREE.DRACOLoader();D.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/draco/gltf/');L.setDRACOLoader(D);L.load(G+'ferrari.glb',safe(g=>rlCarReady(g.scene)),undefined,no)}
+// boot: the loader scripts load async (the title screen does not need them); the walk/run/idle set and the player's own look come first, everything else after PLAY
+const rlLibs='https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/';
+function rlScript(p){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=rlLibs+p;s.async=true;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+function rlBoot(){let aj=null;try{aj=fetch(rlHost+'rb_anims.json').then(r=>{if(!r.ok)throw 0;return r.json()})}catch(e){aj=Promise.reject(e)}aj.catch(()=>{});
+ Promise.all([rlScript('loaders/GLTFLoader.js'),rlScript('utils/SkeletonUtils.js')]).then(()=>{if(!THREE.GLTFLoader||!THREE.SkeletonUtils)return;
+ const L=new THREE.GLTFLoader(),G=rlCDN+'r160/examples/models/gltf/',safe=f=>g=>{try{f(g)}catch(e){console.log('model',e)}},no=()=>{};
+ rlDeferred.push(()=>rlScript('loaders/DRACOLoader.js').then(()=>{const D=new THREE.DRACOLoader();D.setDecoderPath(rlLibs+'libs/draco/gltf/');L.setDRACOLoader(D);L.load(G+'ferrari.glb',safe(g=>rlCarReady(g.scene)),undefined,no)}).catch(()=>{}));
  const legacy=()=>{if(rlMode)return;rlMode='old';L.load(G+'Soldier.glb',safe(g=>{rlTpose(g);const C=rlPrep('sol',g,{}),S={scene:g.scene,mixer:null,clips:{},bones:C.b,restInv:{},order:[],flip:C.flip};
    g.scene.traverse(o=>{if(o.isBone)S.order.push(o.name.replace('mixamorig',''))});for(const n of S.order)S.restInv[n]=C.b[n].getWorldQuaternion(rlQ()).invert();
    for(const a of g.animations){const c=a.clone();c.tracks=c.tracks.filter(t=>!/\.scale$/.test(t.name));S.clips[a.name]=c}
    const src=THREE.SkeletonUtils.clone(g.scene);S.scene=src;S.bones=rlBones(src);S.mixer=new THREE.AnimationMixer(src);rlSrc=S;C.clips={Idle:S.clips.Idle,Walk:S.clips.Walk,Run:S.clips.Run};rlT=0;
    L.load(rlCDN+'r170/examples/models/gltf/readyplayer.me.glb',safe(g2=>{rlTpose(g2);const C2=rlPrep('rpm',g2,{});C2.clips=rlBake(C2);rlT=0}),undefined,no);
    L.load(G+'Michelle.glb',safe(g2=>{rlTpose(g2);const C2=rlPrep('mic',g2,{});C2.clips=rlBake(C2);rlT=0}),undefined,no)}),undefined,no)};
- rlLd=L;try{fetch(rlHost+'rb_anims.json').then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{if(!j||!j.Walk)throw 0;rlAnims=j;rlMode='rb';rlWant(chPlayerKey(),true);for(const k of rlRB)rlWant(k);
-  fetch(rlHost+'rb_anims2.json').then(r=>r.ok?r.json():null).then(j2=>{if(j2&&j2.Talk){rlAnims2=j2;for(const k in rlChar){const C=rlChar[k];if(C&&C.miss)C.miss={}}}}).catch(()=>{})}).catch(legacy)}catch(e){legacy()}}
+ rlLd=L;aj.then(j=>{if(!j||!j.Walk)throw 0;rlAnims=j;rlMode='rb';rlT=0;rlWant(chPlayerKey(),true);
+  rlDeferred.unshift(()=>fetch(rlHost+'rb_anims2.json').then(r=>r.ok?r.json():null).then(j2=>{if(j2&&j2.Talk){rlAnims2=j2;for(const k in rlChar){const C=rlChar[k];if(C&&C.miss)C.miss={}}}}).catch(()=>{}))}).catch(legacy)}).catch(()=>{})}
+rlBoot();

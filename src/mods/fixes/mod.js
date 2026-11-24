@@ -54,3 +54,11 @@ MODS.push(function(dt){
 function fxHasWay(){return typeof mpWay!=='undefined'&&!!mpWay}
 function fxTgt(){return fxHasWay()?mpWay:mission.target}
 if(typeof cpPh!=='undefined'){cpPh.style.left='14px';cpPh.style.top='calc(env(safe-area-inset-top,0px) + 70px)';cpPh.style.width='44px';cpPh.style.height='44px'}
+// ---- show, don't tell: only essential text reaches the screen ----
+// Events you can already see or hear (crashes, police arriving, landings, place names, a mugging...) stay silent on screen; their sound cues still play.
+// Control hints show the first two times only. Money, mission objectives, shops and settings messages are unchanged.
+const fxQuiet=/^(CRASH!|BUMP!|RAMMED!|WIPED OUT|CARJACKED!|STOLE A COP CAR!|Got out|Jumped out|POLICE ARE COMING|Lost the cops|Witness silenced|Someone called the police|MUGGER!|The mugger got away|HD |TIRES BLOWN|ROADBLOCK AHEAD|POLICE HELICOPTER INBOUND|SWAT TEAM!|ARMY!|Helicopter hit!|Clerk down|The clerk has a shotgun|Touchdown|Nice landing|Hard landing|OUCH!|Rough landing|Street level|Roof helipad|Ashore|Club Neon|Police station|Bold move walking in here|Turning back to the city|BAILED OUT!|Waypoint reached|RESTRICTED AREA|ON FIRE|GO GO GO|Rain rolling in|Your car sank|(PISTOL|SMG|SHOTGUN|ROCKET)$|Passenger: "(LET ME OUT|Watch))/;
+const fxHint=/^(Driving! Push up|Get closer to|Boat! Push up|Hold to bail out|UP to climb|Parachute open|PARACHUTE!|Hold FIRE on the clerk|Walk up to the|Get out and walk in|See the agent|STOLE AN AIRLINER|STOLE A FIGHTER JET|Bring a car to the body shop|You need a car for)/;
+let fxHints={};try{fxHints=JSON.parse(localStorage.getItem('blockcity_hints')||'{}')||{}}catch(e){}
+function fxToastOk(s){s=String(s);if(fxQuiet.test(s))return false;const m=s.match(fxHint);if(m){const k=m[1];fxHints[k]=(fxHints[k]||0)+1;try{localStorage.setItem('blockcity_hints',JSON.stringify(fxHints))}catch(e){}return fxHints[k]<=2}return true}
+{const t0=toast;toast=function(s){if(fxToastOk(s)){t0(s);return}const el=$('toast'),tx=el.textContent,op=el.style.opacity;t0(s);el.textContent=tx;el.style.opacity=op}}

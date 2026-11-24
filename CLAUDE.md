@@ -60,7 +60,7 @@ python src/build.py
 python src/smoke_test.py
 ```
 
-The smoke test presses PLAY, moves with the joystick, releases it, fires, and lists JavaScript errors. 404s for model files are fine offline. For anything visual, open `src/build/test.html` through a local server (`python -m http.server` in the repo root, then http://localhost:8000/src/build/test.html) and look at it. Check both portrait (390x844) and landscape (844x390): the owner usually plays in portrait.
+The smoke test presses PLAY, drags the joystick with a finger (touch), releases it, fires, walks with W, and lists JavaScript errors. For timed Playwright tests on Windows, launch Chromium with `--use-angle=d3d11 --enable-gpu`; without a GPU the game runs at about 5% speed. 404s for model files are fine offline. For anything visual, open `src/build/test.html` through a local server (`python -m http.server` in the repo root, then http://localhost:8000/src/build/test.html) and look at it. Check both portrait (390x844) and landscape (844x390): the owner usually plays in portrait.
 
 Known gotcha: input arrives as synthetic touch-shaped events dispatched by `input/adapter.js` (it swallows real touch/mouse events in the capture phase). UI buttons should listen for `touchstart`/`touchend` on the element and call `e.stopPropagation()`. Text inputs are exempt so the phone keyboard opens.
 
@@ -79,8 +79,7 @@ Push to both branches: GitHub Pages serves `gh-pages`. The site updates about a 
 ## Known open issues
 
 - Story's outdoor for-sale panels still buy outside; they should route through `cpOpenCounter('estate', ...)`.
-- Body-shop canopies sit over a traffic lane.
-- Talking/phone arm gestures from `life` only animate the far-away code-built people; HD avatars should use `rlPlay`.
+- Time until PLAY is usable is still 3-8 s: the city build in base, isles, gfx, land and world plus the first-frame shader compile dominate. Models now stream in after the title.
 - Islands are not offered as spawn points (isles could export `isSpawns`).
 - Gang warning bubbles, honking, pull-over for sirens and fist fights are untested.
 - Performance on a real iPhone is unmeasured; `gfx` Auto lowers render scale when fps drops.

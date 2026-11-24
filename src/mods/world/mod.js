@@ -20,7 +20,7 @@ function wdQuad(x0,z0,x1,z1,y,col){wdCol.set(col).convertSRGBToLinear();wdDec.p.
 function wdTQ(Q,cx,cy,cz,n,w,h,u0,v0,u1,v1){const rx=n[1]*w/2,rz=-n[0]*w/2,h2=h/2;Q.p.push(cx-rx,cy-h2,cz-rz,cx+rx,cy-h2,cz+rz,cx+rx,cy+h2,cz+rz,cx-rx,cy-h2,cz-rz,cx+rx,cy+h2,cz+rz,cx-rx,cy+h2,cz-rz);Q.u.push(u0,v0,u1,v0,u1,v1,u0,v0,u1,v1,u0,v1)}
 function wdTQMesh(Q,mat){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(Q.p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(Q.u,2));const m=new THREE.Mesh(g,mat);m.frustumCulled=false;scene.add(m);wdDraws++;return m}
 // ---- streets ----
-const wdA={hyd:[],bench:[],trash:[],bus:[],mail:[],sign:[],tl:[],flower:[],hoop:[],play:[]};
+const wdA={hyd:[],bench:[],trash:[],bus:[],mail:[],sign:[],tl:[],flower:[],hoop:[],play:[]},wdBusS=[],wdFac=[],wdM={};
 for(let i=0;i<=N;i++)for(let j=0;j<=N;j++){const rx=roadCenter(i),rz=roadCenter(j);
  for(const c of [[-1,1,0],[1,-1,Math.PI]]){const bi=i+(c[0]>0?0:-1),bj=j+(c[1]>0?0:-1);if(bi<0||bi>=N||bj<0||bj>=N)continue;wdA.tl.push([rx+c[0]*7.6,.3,rz+c[1]*7.6,c[2]])}
  for(let k=0;k<10;k++){const o=-6.65+k*1.4;
@@ -43,7 +43,7 @@ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const cx=wdC0+i*CELL,cz=wdC0+j*CELL;let
  s=Math.floor(wdR()*4);p=wdPt(cx,cz,s,19.4,(wdR()<.5?-1:1)*(6+wdR()*7));wdA.hyd.push([p[0],.3,p[1],wdR()*6]);
  for(let k=0;k<2;k++){s=Math.floor(wdR()*4);p=wdPt(cx,cz,s,19.3,(k?-1:1)*15.3);wdA.trash.push([p[0],.3,p[1],0])}
  for(s=0;s<4;s++)if(wdR()<.5){n=wdSides[s];p=wdPt(cx,cz,s,16.75,8.5);wdA.bench.push([p[0],.3,p[1],wdFace(n[0],n[1])])}
- if((i+j)%3===0){s=(i+2*j)%4;n=wdSides[s];p=wdPt(cx,cz,s,17,-8.5);wdA.bus.push([p[0],.3,p[1],wdFace(n[0],n[1])]);solids.push(n[0]?{minX:p[0]-.75,maxX:p[0]+.75,minZ:p[1]-1.75,maxZ:p[1]+1.75,h:2.6}:{minX:p[0]-1.75,maxX:p[0]+1.75,minZ:p[1]-.75,maxZ:p[1]+.75,h:2.6})}
+ if((i+j)%3===0){s=(i+2*j)%4;n=wdSides[s];p=wdPt(cx,cz,s,17,-8.5);wdA.bus.push([p[0],.3,p[1],wdFace(n[0],n[1])]);wdBusS.push(n[0]?{minX:p[0]-.75,maxX:p[0]+.75,minZ:p[1]-1.75,maxZ:p[1]+1.75,h:2.6}:{minX:p[0]-1.75,maxX:p[0]+1.75,minZ:p[1]-.75,maxZ:p[1]+.75,h:2.6});solids.push(wdBusS[wdBusS.length-1])}
  if((i*3+j)%4===1){s=(i+j)%2?2:0;n=wdSides[s];p=wdPt(cx,cz,s,19.2,3.2);wdA.mail.push([p[0],.3,p[1],wdFace(-n[0],-n[1])])}
  for(let k=0;k<2;k++){s=(i+j+k*2)%4;n=wdSides[s];p=wdPt(cx,cz,s,19.5,-11.5);wdA.sign.push([p[0],.3,p[1],wdFace(-n[1],n[0])])}}
 // traffic lights: poles (1 draw) + bulbs for the two directions (2 draws) driven by tiny 3x1 textures
@@ -58,9 +58,9 @@ const wdTLA=wdTLTex(),wdTLB=wdTLTex();
 for(const e of [[1,wdTLA],[0,wdTLB]]){const mt=new THREE.MeshBasicMaterial({map:e[1],toneMapped:false});mt.color.setScalar(2.8);wdInst(wdBulbs(e[0]),wdA.tl,{mat:mt,noRecv:1})}
 // furniture
 wdInst([wdCyl(.17,.2,.55,8,0xc8261c,0,.28,0),wdSph(.18,0xc8261c,0,.56,0),wdCyl(.07,.07,.52,6,0xc8261c,0,.38,0,0,0,Math.PI/2),wdCyl(.06,.06,.14,6,0xd9d9d9,0,.74,0)],wdA.hyd);
-wdInst([wdBox(2,.1,.55,0x8a5a2b,0,.5,0),wdBox(2,.5,.08,0x8a5a2b,0,.88,.27),wdBox(.1,.5,.5,0x26282b,-.85,.25,0),wdBox(.1,.5,.5,0x26282b,.85,.25,0),wdBox(.08,.5,.08,0x26282b,-.85,.75,.27),wdBox(.08,.5,.08,0x26282b,.85,.75,.27)],wdA.bench,{shadow:1});
+wdM.bench=wdInst([wdBox(2,.1,.55,0x8a5a2b,0,.5,0),wdBox(2,.5,.08,0x8a5a2b,0,.88,.27),wdBox(.1,.5,.5,0x26282b,-.85,.25,0),wdBox(.1,.5,.5,0x26282b,.85,.25,0),wdBox(.08,.5,.08,0x26282b,-.85,.75,.27),wdBox(.08,.5,.08,0x26282b,.85,.75,.27)],wdA.bench,{shadow:1});
 wdInst([wdCyl(.3,.25,.8,10,0x2f5d3a,0,.4,0),wdCyl(.32,.32,.08,10,0x1c1e20,0,.83,0)],wdA.trash);
-wdInst([wdBox(3.5,.1,1.5,0x2e4a66,0,2.5,0),wdBox(.1,2.5,.1,0x2b2d30,-1.65,1.25,.65),wdBox(.1,2.5,.1,0x2b2d30,1.65,1.25,.65),wdBox(.1,2.5,.1,0x2b2d30,-1.65,1.25,-.65),wdBox(.1,2.5,.1,0x2b2d30,1.65,1.25,-.65),
+wdM.bus=wdInst([wdBox(3.5,.1,1.5,0x2e4a66,0,2.5,0),wdBox(.1,2.5,.1,0x2b2d30,-1.65,1.25,.65),wdBox(.1,2.5,.1,0x2b2d30,1.65,1.25,.65),wdBox(.1,2.5,.1,0x2b2d30,-1.65,1.25,-.65),wdBox(.1,2.5,.1,0x2b2d30,1.65,1.25,-.65),
  wdBox(3.2,1.7,.05,0x86b6d8,0,1.45,.68),wdBox(2.4,.1,.45,0x8a5a2b,0,.5,.35),wdBox(.06,1.6,1.1,0xe6e6e6,-1.66,1.3,0),wdBox(.08,2.9,.08,0x9a9a9a,2.05,1.45,-.6),wdBox(.55,.55,.06,0x1e63c9,2.05,2.7,-.6)],wdA.bus,{shadow:1});
 wdInst([wdBox(.5,.7,.45,0x1c4fa0,0,.75,0),wdCyl(.25,.25,.45,8,0x1c4fa0,0,1.1,0,Math.PI/2),wdBox(.06,.4,.06,0x1b1b1b,-.2,.2,-.17),wdBox(.06,.4,.06,0x1b1b1b,.2,.2,-.17),wdBox(.06,.4,.06,0x1b1b1b,-.2,.2,.17),wdBox(.06,.4,.06,0x1b1b1b,.2,.2,.17),wdBox(.3,.05,.02,0xdddddd,0,.95,-.23)],wdA.mail);
 wdInst([wdCyl(.04,.04,2.7,6,0x9a9a9a,0,1.35,0),wdBox(.55,.7,.04,0xf2f2f2,0,2.35,-.05),wdBox(.4,.16,.05,0xc22a2a,0,2.52,-.06),wdBox(.3,.3,.05,0x1b1b1b,0,2.2,-.06)],wdA.sign);
@@ -76,16 +76,27 @@ const wdBillTex=canvasTex(1024,1024,g=>{const ads=[['FIZZ BLAST','SODA THAT SLAP
   g.font='700 36px -apple-system,Helvetica,Arial,sans-serif';g.fillText(a[1],x+256,y+190,460);g.strokeStyle='rgba(255,255,255,.7)';g.lineWidth=8;g.strokeRect(x+4,y+4,504,248)}});
 const wdSignMat=new THREE.MeshBasicMaterial({map:wdSignTex,toneMapped:false}),wdBillMat=new THREE.MeshBasicMaterial({map:wdBillTex,toneMapped:false});
 const wdSQ={p:[],u:[]},wdBQ={p:[],u:[]},wdAw=[],wdAC=[],wdWT=[],wdAnt=[],wdBlk=[],wdBillC=[],wdAwCols=[0xb3261e,0x1f6f43,0x1c3f7a,0xd9772b,0x12807a,0x7a1f3d,0x2b2b2b,0xc9a227];
+const wdElevB=new Set();try{if(typeof vhElev!=='undefined')for(const E of vhElev)if(E.R&&E.R.b)wdElevB.add(E.R.b)}catch(e){}
 for(const b of wdBld){const bx=(b.minX+b.maxX)/2,bz=(b.minZ+b.maxZ)/2,w=b.maxX-b.minX,d=b.maxZ-b.minZ,h=b.h,ci=Math.round((bx-wdC0)/CELL),cj=Math.round((bz-wdC0)/CELL);if(ci<0||ci>=N||cj<0||cj>=N)continue;const cx=wdC0+ci*CELL,cz=wdC0+cj*CELL;
- for(let s=0;s<4;s++){const n=wdSides[s],fx=bx+n[0]*w/2,fz=bz+n[1]*d/2;if((fx-cx)*n[0]+(fz-cz)*n[1]<15.5)continue;const fw=n[0]?d:w;
-  if(wdR()<.72){const aw=Math.min(fw*.7,9),off=(wdR()-.5)*(fw-aw)*.6,px=fx-n[1]*off,pz=fz+n[0]*off;wdAw.push([px,3.3,pz,wdFace(n[0],n[1]),1,1,wdAwCols[Math.floor(wdR()*wdAwCols.length)],aw]);
+ for(let s=0;s<4;s++){const n=wdSides[s],fx=bx+n[0]*w/2,fz=bz+n[1]*d/2;if((fx-cx)*n[0]+(fz-cz)*n[1]<15.5)continue;if(n[1]<0&&wdElevB.has(b))continue;const fw=n[0]?d:w;
+  if(wdR()<.72){const aw=Math.min(fw*.7,9),off=(wdR()-.5)*(fw-aw)*.6,px=fx-n[1]*off,pz=fz+n[0]*off;wdFac.push({x:px,z:pz,n,aw,i:wdAw.length,q:wdSQ.p.length});wdAw.push([px,3.3,pz,wdFace(n[0],n[1]),1,1,wdAwCols[Math.floor(wdR()*wdAwCols.length)],aw]);
    const sw=Math.min(aw*.92,6.4),k=Math.floor(wdR()*16),u0=(k%2)/2,v1=1-Math.floor(k/2)/8;wdTQ(wdSQ,px+n[0]*.14,4.75,pz+n[1]*.14,n,sw,sw/4,u0,v1-.125,u0+.5,v1)}
   if(h>=14&&h<=46&&fw>=14)wdBillC.push({x:fx-n[0]*1.1,y:h+.6,z:fz-n[1]*1.1,n})}
  if(h>=10){const q=[[1,1],[1,-1],[-1,1],[-1,-1]].sort(()=>wdR()-.5),y=h+.6,na=1+Math.floor(wdR()*3);for(let k=0;k<na;k++)wdAC.push([bx+q[k][0]*w*.33,y,bz+q[k][1]*d*.33,wdR()<.5?0:Math.PI/2]);
   if(h<55&&wdR()<.28)wdWT.push([bx+q[3][0]*w*.3,y,bz+q[3][1]*d*.3,wdR()*6,Math.min(1.5,w/14)]);
   if(h>50){const sc=1+h/160;wdAnt.push([bx,h+2.3,bz,wdR()*6,sc]);wdBlk.push([bx,h+2.3+10.2*sc,bz])}}}
-{const g=U.mergeBufferGeometries([wdG(new THREE.BoxGeometry(1,.08,1.45),0xffffff,0,0,-.7,-.32),wdBox(1,.28,.04,0xeeeeee,0,-.37,-1.388)]);wdInst(g,wdAw,{shadow:1})}
-wdTQMesh(wdSQ,wdSignMat);
+{const g=U.mergeBufferGeometries([wdG(new THREE.BoxGeometry(1,.08,1.45),0xffffff,0,0,-.7,-.32),wdBox(1,.28,.04,0xeeeeee,0,-.37,-1.388)]);wdM.aw=wdInst(g,wdAw,{shadow:1})}
+wdM.sign=wdTQMesh(wdSQ,wdSignMat);
+// a shop storefront takes over a facade: remove the generic awning + neon sign there, and benches / bus shelters in front of its door
+// wdClearFacade(x0,x1,z,nz,doorX): north (nz<0) or south (nz>0) facade at z spanning x0..x1
+// east/west facade at x spanning z0..z1 (used where another module hangs its own sign on that wall)
+function wdClearSide(z0,z1,x,nx){const Z=new THREE.Matrix4().makeScale(0,0,0);for(const e of wdFac){if(e.gone||e.n[1]!==0||Math.sign(e.n[0])!==Math.sign(nx)||Math.abs(e.x-x)>.8||e.z+e.aw/2<z0||e.z-e.aw/2>z1)continue;e.gone=true;wdM.aw.setMatrixAt(e.i,Z);wdM.aw.instanceMatrix.needsUpdate=true;
+ const P=wdM.sign.geometry.attributes.position;for(let k=e.q/3;k<e.q/3+6;k++)P.setXYZ(k,0,-50,0);P.needsUpdate=true}}
+function wdClearFacade(x0,x1,z,nz,dx){const Z=new THREE.Matrix4().makeScale(0,0,0);
+ for(const e of wdFac){if(e.gone||e.n[0]!==0||Math.sign(e.n[1])!==Math.sign(nz)||Math.abs(e.z-z)>.8||e.x<x0-.5||e.x>x1+.5)continue;e.gone=true;wdM.aw.setMatrixAt(e.i,Z);wdM.aw.instanceMatrix.needsUpdate=true;
+  const P=wdM.sign.geometry.attributes.position;for(let k=e.q/3;k<e.q/3+6;k++)P.setXYZ(k,0,-50,0);P.needsUpdate=true}
+ if(dx===undefined)return;for(const L of[['bench',wdA.bench],['bus',wdA.bus]])L[1].forEach((a,k)=>{if(Math.abs(a[0]-dx)<5.5&&Math.abs(a[2]-z)<3.2&&!a.gone){a.gone=true;wdM[L[0]].setMatrixAt(k,Z);wdM[L[0]].instanceMatrix.needsUpdate=true;
+  if(L[0]==='bus'){const s=wdBusS[k],i=solids.indexOf(s);if(i>=0)solids.splice(i,1)}}})}
 wdInst([wdBox(1.7,1,1.25,0xb4b8bc,0,.5,0),wdCyl(.45,.45,.06,10,0x2b2f33,0,1.03,0),wdBox(1.72,.5,.9,0x8d9196,0,.5,0),wdBox(.3,.25,.3,0x6d7176,.6,1.1,.4)],wdAC);
 wdInst([wdBox(.15,2,.15,0x33363a,-.8,1,-.8),wdBox(.15,2,.15,0x33363a,.8,1,-.8),wdBox(.15,2,.15,0x33363a,-.8,1,.8),wdBox(.15,2,.15,0x33363a,.8,1,.8),wdCyl(1.3,1.3,2.2,10,0x7a5230,0,3.1,0),wdCyl(1.34,1.34,.1,10,0x2b2b2b,0,2.5,0),wdCyl(1.34,1.34,.1,10,0x2b2b2b,0,3.7,0),wdG(new THREE.ConeGeometry(1.5,.9,10),0x4a4f55,0,4.65,0)],wdWT,{shadow:1});
 wdInst([wdCyl(.07,.14,10,6,0xcfd3d6,0,5,0),wdBox(1.6,.06,.06,0xcfd3d6,0,5.5,0),wdBox(.06,.06,1.3,0xcfd3d6,0,7,0),wdBox(1,.06,.06,0xcfd3d6,0,8.4,0),wdCyl(.5,.2,.25,8,0xe6e6e6,.3,3.2,0,0,0,.9)],wdAnt);

@@ -132,3 +132,26 @@ function auTick(dt){const show=driving&&state==='play'?'flex':'none';if(auBtn.st
  // wanted level sting
  if(wanted>auPrevW){auO('ui','sawtooth',196,196,.22,.16,now,.01);auO('ui','sawtooth',233,233,.22,.16,now+.17,.01);auO('ui','sawtooth',294,294,.45,.18,now+.34,.01);auN('ui',.5,'lowpass',400,100,.7,.2,now+.34)}auPrevW=wanted}
 MODS.push(auTick);
+// ---- street voices: screams, shouts, gasps, whimpers (a buzz through vowel formant filters, placed left/right and fading with distance) ----
+// auVoice('scream'|'shout'|'yelp'|'gasp'|'whimper'|'grunt', position, female)
+const auVF={a:[850,1250,2700],e:[600,1800,2600],u:[600,1000,2400],o:[400,850,2400]};let auVoT=0,auVoN=0;
+function auVK(p,range){if(!p)return {k:1,t:AC.currentTime,pan:0};const dx=p.x-cam.position.x,dz=p.z-cam.position.z,d=Math.hypot(p.x-pos.x,p.z-pos.z),k=Math.max(0,1-d/(range||65));
+ const rx=Math.cos(camYaw),rz=-Math.sin(camYaw),l=Math.hypot(dx,dz)||1;return {k:k*k,t:AC.currentTime+Math.min(.18,d/340),pan:Math.max(-.85,Math.min(.85,(dx*rx+dz*rz)/l))}}
+function auVoice(kind,p,fem){if(!AC)return;auInit();if(!auOn||auMute)return;const now=AC.currentTime;if(now-auVoT>1){auVoT=now;auVoN=0}if(++auVoN>5)return;
+ const V=auVK(p);if(V.k<.02)return;const t=V.t,r=.9+Math.random()*.22,f0=(fem?235:135)*r,sc=fem?1.14:1;
+ let out=AC.createGain();out.gain.value=1;if(AC.createStereoPanner){const pn=AC.createStereoPanner();pn.pan.value=V.pan;out.connect(pn);pn.connect(auBus.fx)}else out.connect(auBus.fx);
+ if(kind==='gasp'){auN(out,.32,'bandpass',1400,2600,1.1,.22*V.k,t,.12);return}
+ const P={scream:[1.1+Math.random()*.4,[2.05,2.65,2.2],'a',.42,.04,6],shout:[.34,[1.5,1.15,1.1],'e',.5,.02,0],yelp:[.24,[2.3,2,1.7],'a',.4,.015,0],
+  whimper:[.75,[1.75,1.9,1.55],'o',.2,.06,9],grunt:[.2,[.9,.8,.7],'u',.38,.015,0]}[kind];if(!P)return;
+ const [dur,c,vw,gn,atk,vib]=P,o=AC.createOscillator(),env=AC.createGain(),F=auVF[vw];o.type='sawtooth';
+ o.frequency.setValueAtTime(f0*c[0],t);o.frequency.linearRampToValueAtTime(f0*c[1],t+Math.min(.16,dur*.3));o.frequency.linearRampToValueAtTime(f0*c[2],t+dur);
+ if(vib){const lf=AC.createOscillator(),lg=AC.createGain();lf.frequency.value=vib+Math.random()*1.5;lg.gain.value=f0*c[1]*(kind==='whimper'?.06:.025);lf.connect(lg);lg.connect(o.frequency);lf.start(t);lf.stop(t+dur+.05)}
+ for(let i=0;i<3;i++){const b=AC.createBiquadFilter(),g=AC.createGain();b.type='bandpass';b.frequency.value=F[i]*sc;b.Q.value=[5,7,9][i];g.gain.value=[1.6,.9,.5][i];o.connect(b);b.connect(g);g.connect(env)}
+ env.gain.setValueAtTime(.0001,t);env.gain.exponentialRampToValueAtTime(gn*V.k,t+atk);env.gain.setValueAtTime(gn*V.k,t+dur*.6);env.gain.exponentialRampToValueAtTime(.0001,t+dur);env.connect(out);o.start(t);o.stop(t+dur+.05);
+ if(kind==='scream')auN(out,dur*.8,'bandpass',2600*sc,2000,.9,.05*V.k,t,.05);
+ if(kind==='whimper'){env.gain.setValueAtTime(gn*V.k*.3,t+dur*.38);env.gain.linearRampToValueAtTime(gn*V.k,t+dur*.5)}}
+// a punch landing, a swing that misses, a phone being dialled
+function auHit(p){if(!AC)return;auInit();if(!auOn)return;const V=auVK(p,50);if(V.k<.02)return;auN('fx',.1,'lowpass',520,140,.9,.75*V.k,V.t);auO('fx','sine',115,45,.13,.6*V.k,V.t);auN('fx',.05,'highpass',2400,2400,.7,.12*V.k,V.t)}
+function auWhiff(p){if(!AC)return;auInit();if(!auOn)return;const V=auVK(p,40);if(V.k<.02)return;auN('fx',.2,'bandpass',700,2600,1.3,.16*V.k,V.t,.06)}
+function auDial(p){if(!AC)return;auInit();if(!auOn)return;const V=auVK(p,35);if(V.k<.02)return;const tones=[[697,1209],[770,1336],[852,1477],[941,1336]];
+ for(let i=0;i<4;i++){const q=tones[i],w=V.t+.2+i*.17;auO('fx','sine',q[0],q[0],.09,.05*V.k,w,.005);auO('fx','sine',q[1],q[1],.09,.04*V.k,w,.005)}}
