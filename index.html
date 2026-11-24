@@ -28,13 +28,13 @@ canvas#g{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
 <body><div id="hud"><div id="cash">$0</div><div id="cn">● 0</div><div id="clock"></div><div id="kills">✖ 0</div></div><div id="xh"></div><div id="dmg"></div><div id="stars"></div><div id="bars"><div><div id="hpb"></div></div><div><div id="arb"></div></div></div><div id="lock"></div>
 <canvas id="map" width="260" height="260"></canvas><div id="mission"></div>
 <div id="stick"><div id="knob"></div></div><div id="jump" class="btn">JUMP</div><div id="car" class="btn">CAR</div><div id="fire" class="btn">FIRE</div><div id="wpn" class="btn">PISTOL</div><div id="toast"></div>
-<div id="msg"><h1>BLOCK CITY</h1><p style="opacity:.7;font-size:12px">version 10</p><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
+<div id="msg"><h1>BLOCK CITY</h1><p style="opacity:.7;font-size:12px">version 11</p><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/DRACOLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/SkeletonUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/FXAAShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 if(!window.THREE){document.getElementById('msg').innerHTML='<h1>No internet</h1><p>Connect once so the 3D engine can load.</p>'}else{
 THREE.ColorManagement.legacyMode=false;const $=id=>document.getElementById(id);
 // ---------- input adapter: one input path (Pointer Events) for touch, mouse and pen, so controls work inside embeds and on desktop ----------
-let inRot=false;const inX=e=>inRot?e.clientY:e.clientX,inY=e=>inRot?document.documentElement.clientWidth-e.clientX:e.clientY; // rotate-screen mode maps real screen points into the rotated game space
+let inRot=0,inRW=0,inRH=0;const inX=e=>inRot===1?e.clientY:(inRot===2?(inRH||document.documentElement.clientHeight)-e.clientY:e.clientX),inY=e=>inRot===1?(inRW||document.documentElement.clientWidth)-e.clientX:(inRot===2?e.clientX:e.clientY); // rotate-screen mode maps real screen points into the rotated game space
 if(window.PointerEvent){const act=new Map(),W=window,fire=(type,t,tgt)=>{const ev=new Event(type,{bubbles:true,cancelable:true});ev.inSyn=true;ev.changedTouches=[t];ev.touches=Array.from(act.values());ev.targetTouches=ev.touches;(tgt&&tgt.isConnected?tgt:document.body).dispatchEvent(ev)};
  const wake=()=>{try{if(AC&&AC.state==='suspended')AC.resume()}catch(e){}};
  const drop=(id,ty)=>{const t=act.get(id);if(!t)return;act.delete(id);fire(ty||'touchend',t,t.target)};
@@ -1790,6 +1790,8 @@ if(typeof vhDamage==='function'){const d0=vhDamage;vhDamage=function(n){d0(n*.4)
 function fxHasWay(){return typeof mpWay!=='undefined'&&!!mpWay}
 function fxTgt(){return fxHasWay()?mpWay:mission.target}
 if(typeof cpPh!=='undefined'){cpPh.style.left='14px';cpPh.style.top='calc(env(safe-area-inset-top,0px) + 70px)';cpPh.style.width='44px';cpPh.style.height='44px'}
+// no rain
+MODS.push(function(){weatherT=1e9;rainTarget=0;rain=0});
 
 // ---------- keyboard for desktop play ----------
 {const K={};const mv=()=>{if(joy.id!==null&&joy.id!=='kb')return;const x=(K.d||K.arrowright?1:0)-(K.a||K.arrowleft?1:0),y=(K.s||K.arrowdown?1:0)-(K.w||K.arrowup?1:0);if(x||y){joy.id='kb';joy.x=x;joy.y=y}else if(joy.id==='kb'){joy.id=null;joy.x=joy.y=0}};
@@ -1953,14 +1955,16 @@ const uiDW=Object.getOwnPropertyDescriptor(window,'innerWidth'),uiDH=Object.getO
 const uiRW=()=>uiDW&&uiDW.get?uiDW.get.call(window):document.documentElement.clientWidth,uiRH=()=>uiDH&&uiDH.get?uiDH.get.call(window):document.documentElement.clientHeight;
 let uiRotOK=false;
 try{Object.defineProperty(window,'innerWidth',{configurable:true,get:()=>inRot?uiRH():uiRW()});Object.defineProperty(window,'innerHeight',{configurable:true,get:()=>inRot?uiRW():uiRH()});
- const gb=Element.prototype.getBoundingClientRect;Element.prototype.getBoundingClientRect=function(){const r=gb.call(this);if(!inRot)return r;const l=r.top,t=document.documentElement.clientWidth-r.right;return {left:l,top:t,right:l+r.height,bottom:t+r.width,width:r.height,height:r.width,x:l,y:t}};
+ const gb=Element.prototype.getBoundingClientRect;Element.prototype.getBoundingClientRect=function(){const r=gb.call(this);if(!inRot)return r;const l=inRot===2?uiRH()-r.bottom:r.top,t=inRot===2?r.left:uiRW()-r.right;return {left:l,top:t,right:l+r.height,bottom:t+r.width,width:r.height,height:r.width,x:l,y:t}};
  uiRotOK=true}catch(e){uiRotOK=false}
-function uiLayout(){const b=document.body.classList,p=innerHeight>innerWidth;b.toggle('ui-touch',(navigator.maxTouchPoints||0)>0);b.toggle('ui-p',p);b.toggle('ui-l',!p);b.toggle('ui-lh',!!uiS.lh);b.toggle('ui-rot',inRot);b.toggle('ui-fps',!!uiS.fps);
+function uiLayout(){const b=document.body.classList,p=innerHeight>innerWidth;b.toggle('ui-touch',(navigator.maxTouchPoints||0)>0);b.toggle('ui-p',p);b.toggle('ui-l',!p);b.toggle('ui-lh',!!uiS.lh);b.toggle('ui-rot',!!inRot);b.toggle('ui-rot2',inRot===2);b.toggle('ui-fps',!!uiS.fps);
  stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.right='';uiFloat=false}
-function uiApplyRot(){const want=!!uiS.rot&&uiRotOK&&uiRH()>uiRW()*1.05,b=document.body.style;inRot=want;
- if(want){b.position='fixed';b.left='0';b.top='0';b.width=uiRH()+'px';b.height=uiRW()+'px';b.transformOrigin='0 0';b.transform='rotate(90deg) translate(0,-100%)'}
+function uiApplyRot(){const want=uiS.rot&&uiRotOK&&uiRH()>uiRW()*1.05?(uiS.rot===2?2:1):0,b=document.body.style;inRW=uiRW();inRH=uiRH();inRot=want;
+ if(want){b.position='fixed';b.left='0';b.top='0';b.width=uiRH()+'px';b.height=uiRW()+'px';b.transformOrigin='0 0';b.transform=want===2?'rotate(-90deg) translate(-100%,0)':'rotate(90deg) translate(0,-100%)'}
  else{b.position='';b.left='';b.top='';b.width='';b.height='';b.transformOrigin='';b.transform=''}
- uiLayout();const ev=new Event('resize');ev.uiSyn=true;window.dispatchEvent(ev);uiTitleSync()}
+ uiLayout();const ev=new Event('resize');ev.uiSyn=true;window.dispatchEvent(ev);uiTitleSync();uiRotSync()}
+function uiRotCycle(){uiS.rot=((uiS.rot||0)+1)%3;uiS.hint=1;uiSave();uiApplyRot();toast(uiS.rot===1?'Sideways: turn phone left':(uiS.rot===2?'Sideways: turn phone right':'Upright'))}
+function uiRotSync(){let ok=false;try{ok=!!uiRotB}catch(e){}if(!ok)return;const can=uiRotOK&&(inRot||uiRH()>uiRW()*1.05);uiRotB.style.display=can?'block':'none';uiRotB.style.transform=inRot===2?'scaleX(-1)':'';uiRotB.style.opacity=inRot?'1':'.7'}
 addEventListener('resize',e=>{if(e.uiSyn)return;uiApplyRot()});
 // ----- icons (drawn here, used as CSS backgrounds so game code can keep rewriting button text) -----
 const uiIc=(d,col)=>'url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="'+(col||'#fff')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>')+'")';
@@ -1976,6 +1980,8 @@ const uiI={fire:'<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M
  const I=' !important',c=[];
  c.push('body{--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--gb:rgba(255,255,255,.17);--ac:#ffd23f;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif}');
  c.push('body.ui-rot{--st:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-left,0px);--sl:env(safe-area-inset-top,0px);--sr:env(safe-area-inset-bottom,0px)}');
+ c.push('body.ui-rot2{--st:env(safe-area-inset-left,0px);--sb:env(safe-area-inset-right,0px);--sl:env(safe-area-inset-bottom,0px);--sr:env(safe-area-inset-top,0px)}');
+ c.push('#uiRotB{position:fixed;right:calc(var(--sr) + 12px);top:calc(var(--st) + 140px);width:34px;height:34px;border-radius:50%;border:1px solid var(--gb);z-index:6;display:none;background:rgba(20,22,28,.55) '+uiIc(uiI.rot)+' no-repeat center/18px}.ui-side{margin:6px 0 2px;display:flex;flex-direction:column;align-items:center;gap:6px}.ui-side-h{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}.ui-b.ui-on{outline:2px solid var(--ac);color:var(--ac)}');
  c.push('body.ui-noblur *{-webkit-backdrop-filter:none'+I+';backdrop-filter:none'+I+'}');
  // status cluster
  c.push('#uiCard{position:fixed;left:calc(var(--sl) + 58px);top:calc(var(--st) + 8px);width:194px;height:88px;border-radius:18px;border:1px solid var(--gb);pointer-events:none;z-index:3;'+G+'}');
@@ -2042,17 +2048,17 @@ const uiI={fire:'<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M
  const st=document.createElement('style');st.id='uiCss';st.textContent=c.join('');document.head.appendChild(st)}
 // ----- DOM pieces -----
 const uiEl=(tag,id,html)=>{const e=document.createElement(tag);if(id)e.id=id;if(html)e.innerHTML=html;document.body.appendChild(e);return e};
-uiEl('div','uiCard');const uiGear=uiEl('div','uiGear'),uiFpsEl=uiEl('div','uiFps'),uiSet=uiEl('div','uiSet'),uiTitle=uiEl('div','uiTitle');
+uiEl('div','uiCard');const uiGear=uiEl('div','uiGear'),uiRotB=uiEl('div','uiRotB'),uiFpsEl=uiEl('div','uiFps'),uiSet=uiEl('div','uiSet'),uiTitle=uiEl('div','uiTitle');
 {const hz=document.getElementById('apHz');if(hz&&hz.parentElement&&hz.parentElement.parentElement)hz.parentElement.parentElement.id='uiApHud'}
 $('msg').style.display='none';
 const uiSpan=(k)=>'<i style="background-image:'+uiIc(uiI[k]).split('"').join('&quot;')+'"></i>';
 function uiTitleSync(){const canRot=uiRotOK&&(inRot||uiRH()>uiRW()*1.05);
  uiTitle.innerHTML='<div class="ui-col"><div class="ui-logo">Block<br>City</div><div class="ui-tag">OPEN WORLD</div><div class="ui-b ui-play">Play</div>'
-  +'<div class="ui-row">'+(canRot?'<div class="ui-b ui-ghost" data-a="rot">'+uiSpan('rot')+(inRot?'Rotate back':'Rotate screen')+'</div>':'')+'<div class="ui-b ui-ghost" data-a="set">'+uiSpan('gear')+'Settings</div></div>'
-  +(canRot&&!inRot&&!uiS.hint?'<div class="ui-hint">Phone locked upright? Tap Rotate screen to play sideways.</div>':'')+'</div>'
+  +(canRot?'<div class="ui-side"><div class="ui-side-h">'+(inRot?'Playing sideways':'Play sideways')+'</div><div class="ui-row"><div class="ui-b ui-ghost'+(inRot===1?' ui-on':'')+'" data-a="rot1">'+uiSpan('rot')+'Turn phone left</div><div class="ui-b ui-ghost'+(inRot===2?' ui-on':'')+'" data-a="rot2">Turn phone right<i style="transform:scaleX(-1);background-image:'+uiIc(uiI.rot).split('"').join('&quot;')+'"></i></div></div>'+(inRot?'<div class="ui-b ui-ghost" data-a="rot0">Back to upright</div>':'')+'</div>':'')+'<div class="ui-row"><div class="ui-b ui-ghost" data-a="set">'+uiSpan('gear')+'Settings</div></div>'
+  +(canRot&&!inRot&&!uiS.hint?'<div class="ui-hint">Phone locked upright? Pick a side to play in landscape.</div>':'')+'</div>'
   +'<div class="ui-how"><div>'+uiSpan('move')+'<span><b>Left thumb</b> to walk, drive and fly</span></div><div>'+uiSpan('look')+'<span><b>Drag</b> to look around, <b>pinch</b> to zoom</span></div><div>'+uiSpan('fire')+'<span><b>Tap a target</b> to lock on, hold <b>Fire</b> to shoot</span></div>'
   +'<div>'+uiSpan('car')+'<span><b>Car</b> button enters, steals and exits any vehicle</span></div><div>'+uiSpan('map')+'<span><b>Tap the radar</b> for the full map</span></div><div class="ui-kb">'+uiSpan('gear')+'<span>Keyboard: WASD, mouse drag, wheel zoom, Space, E, F, Q, M</span></div></div>'}
-uiTitle.addEventListener('touchstart',e=>{const a=e.target&&e.target.closest?e.target.closest('[data-a]'):null;if(!a)return;e.preventDefault();e.stopPropagation();if(a.getAttribute('data-a')==='rot'){uiS.rot=inRot?0:1;uiS.hint=1;uiSave();uiApplyRot()}else uiOpenSet()},{passive:false});
+uiTitle.addEventListener('touchstart',e=>{const a=e.target&&e.target.closest?e.target.closest('[data-a]'):null;if(!a)return;e.preventDefault();e.stopPropagation();const k=a.getAttribute('data-a');if(k.indexOf('rot')===0){uiS.rot=+k.charAt(3)||0;uiS.hint=1;uiSave();uiApplyRot()}else uiOpenSet()},{passive:false});
 // ----- graphics quality -----
 const uiQPR=[.6,.7,.85,1,1.25,1.5,1.75,2,2.5,3],uiQFar=[150,150,180,210,240,266,266,266,266,266],uiQP=[0,0,4,6,8,10,12,16,16,16],uiQC=[0,0,1,2,3,4,5,6,6,6];
 function uiApplyQ(){const q=uiClamp(Math.round(uiS.q),1,10),i=q-1,pr=Math.min(devicePixelRatio||1,uiQPR[i]);
@@ -2067,7 +2073,7 @@ function uiSlHtml(k){const d=uiSl[k],p=(uiS[k]-d.min)/(d.max-d.min)*100;return '
 function uiTgHtml(k,n,sub,off){return '<div class="ui-tg'+(off?' off':'')+'" data-a="tg" data-k="'+k+'"><span>'+n+(sub?'<small>'+sub+'</small>':'')+'</span><div class="ui-sw'+(uiS[k]?' on':'')+'"></div></div>'}
 function uiRender(){const canRot=uiRotOK&&(inRot||uiRH()>uiRW()*1.05),jobs=typeof msPassed!=='undefined'?' &middot; '+msPassed+' jobs':'';
  uiSet.innerHTML='<div class="ui-pan"><div class="ui-hd"><b>'+(uiPrev==='ready'?'SETTINGS':'PAUSED')+'</b><span>$'+cash+' &middot; '+kills+' takedowns &middot; '+coinN+' coins'+jobs+'</span></div><div class="ui-grid"><div>'+uiSlHtml('q')+uiSlHtml('vol')+uiSlHtml('sens')+'</div><div>'
-  +uiTgHtml('rot','Rotate screen',canRot?'Play sideways on an upright phone':'Only when the screen is upright',!canRot)+uiTgHtml('lh','Left-handed layout','Swap joystick and buttons')+uiTgHtml('invY','Invert camera Y')+uiTgHtml('fps','Show FPS')+'</div></div>'
+  +uiTgHtml('rot','Rotate screen: '+(uiS.rot===1?'Left':(uiS.rot===2?'Right':'Off')),canRot?'Tap to switch: Off, Left, Right':'Only when the screen is upright',!canRot)+uiTgHtml('lh','Left-handed layout','Swap joystick and buttons')+uiTgHtml('invY','Invert camera Y')+uiTgHtml('fps','Show FPS')+'</div></div>'
   +'<div class="ui-ft">'+(uiPrev==='ready'?'':'<div class="ui-b" data-a="respawn">Reset character</div>')+'<div class="ui-b ui-warn" data-a="wipe">'+(uiConfirm?'Tap again to erase':'Reset saved game')+'</div><div class="ui-b ui-res" data-a="close">'+(uiPrev==='ready'?'Done':'Resume')+'</div></div></div>'}
 function uiSetVal(k,v,live){const d=uiSl[k];v=uiClamp(Math.round(v/d.step)*d.step,d.min,d.max);if(k==='q'&&uiS.auto&&v!==uiS.q){uiS.auto=0;const ch=uiSet.querySelector('.ui-chip');if(ch)ch.classList.remove('on')}uiS[k]=v;
  const p=(v-d.min)/(d.max-d.min)*100,f=document.getElementById('uiF_'+k),t=document.getElementById('uiT_'+k),e=document.getElementById('uiV_'+k);if(f)f.style.width=p+'%';if(t)t.style.left=p+'%';if(e)e.textContent=d.f(v);
@@ -2079,12 +2085,13 @@ uiSet.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();c
  if(a==='sl'){uiDrag={k:k,id:t.identifier};uiSlAt(k,t.clientX)}
  else if(a==='dec'||a==='inc')uiSetVal(k,uiS[k]+(a==='inc'?1:-1)*uiSl[k].step)
  else if(a==='auto'){uiS.auto=uiS.auto?0:1;uiAutoBad=0;uiRender()}
- else if(a==='tg'){if(k==='rot'&&!(uiRotOK&&(inRot||uiRH()>uiRW()*1.05)))return;uiS[k]=uiS[k]?0:1;if(k==='invY')uiInvY=uiS.invY?-1:1;if(k==='rot'){uiS.hint=1;uiApplyRot()}else uiLayout();uiRender()}
+ else if(a==='tg'){if(k==='rot'&&!(uiRotOK&&(inRot||uiRH()>uiRW()*1.05)))return;if(k==='rot')uiS.rot=((uiS.rot||0)+1)%3;else uiS[k]=uiS[k]?0:1;if(k==='invY')uiInvY=uiS.invY?-1:1;if(k==='rot'){uiS.hint=1;uiApplyRot()}else uiLayout();uiRender()}
  else if(a==='respawn'){uiCloseSet();respawn()}
  else if(a==='wipe'){if(!uiConfirm){uiConfirm=1;uiRender()}else{uiConfirm=0;cash=0;coinN=0;kills=0;WEAP[1].ammo=60;WEAP[2].ammo=12;WEAP[3].ammo=3;wi=0;if(typeof msPassed!=='undefined'){msPassed=0;msBest=0}try{localStorage.removeItem('blockcity_save')}catch(x){}if(typeof msSave==='function')msSave();uiRender();toast('Saved game erased')}}
  else if(a==='close')uiCloseSet()},{passive:false});
 uiSet.addEventListener('touchmove',e=>{e.stopPropagation();if(uiDrag)for(const t of e.changedTouches)if(t.identifier===uiDrag.id)uiSlAt(uiDrag.k,t.clientX)});
 {const up=e=>{e.stopPropagation();if(uiDrag){const k=uiDrag.k;uiDrag=null;uiSave();if(k==='q')uiApplyQ()}};uiSet.addEventListener('touchend',up);uiSet.addEventListener('touchcancel',up)}
+uiRotB.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();if(state==='play'||state==='ready')uiRotCycle()},{passive:false});
 uiGear.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();uiOpenSet()},{passive:false});
 addEventListener('keydown',e=>{if(e.key==='Escape'||e.key==='p'){if(uiOpen)uiCloseSet();else uiOpenSet()}});
 // ----- floating joystick: base asks this before it reads the stick position, so the stick is moved under the thumb first -----
