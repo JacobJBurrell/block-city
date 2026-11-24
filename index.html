@@ -1,5 +1,5 @@
 <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;-webkit-user-select:none;font-family:-apple-system,sans-serif}
+<style>*{touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:none;-webkit-user-select:none;font-family:-apple-system,sans-serif}
 canvas#g{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
 #hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:12px;color:#fff;font-weight:800;font-size:17px;text-shadow:0 2px 4px #000a;pointer-events:none;line-height:1.5}
 #cash{color:#6dff8a;font-size:24px}
@@ -23,15 +23,33 @@ canvas#g{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
 #wpn{right:122px;bottom:calc(env(safe-area-inset-bottom,0px) + 168px);width:78px;height:78px;font-size:12px;text-align:center;line-height:1.2;background:#0006}
 #wpn small{font-size:15px}
 #dmg{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,#ff000099 100%)}
+@media (orientation:portrait){#stars,#bars{left:auto;right:150px;margin-left:0;width:118px}#stars{font-size:19px;letter-spacing:0}}
 #toast{position:fixed;top:40%;left:0;right:0;text-align:center;color:#fff;font-weight:900;font-size:26px;text-shadow:0 2px 8px #000;opacity:0;transition:opacity .3s;pointer-events:none}</style></head>
 <body><div id="hud"><div id="cash">$0</div><div id="cn">● 0</div><div id="clock"></div><div id="kills">✖ 0</div></div><div id="xh"></div><div id="dmg"></div><div id="stars"></div><div id="bars"><div><div id="hpb"></div></div><div><div id="arb"></div></div></div><div id="lock"></div>
 <canvas id="map" width="260" height="260"></canvas><div id="mission"></div>
 <div id="stick"><div id="knob"></div></div><div id="jump" class="btn">JUMP</div><div id="car" class="btn">CAR</div><div id="fire" class="btn">FIRE</div><div id="wpn" class="btn">PISTOL</div><div id="toast"></div>
-<div id="msg"><h1>BLOCK CITY</h1><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p><b>Tap anywhere to start</b></p></div>
+<div id="msg"><h1>BLOCK CITY</h1><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/DRACOLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/SkeletonUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/FXAAShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 if(!window.THREE){document.getElementById('msg').innerHTML='<h1>No internet</h1><p>Connect once so the 3D engine can load.</p>'}else{
 THREE.ColorManagement.legacyMode=false;const $=id=>document.getElementById(id);
+// ---------- input adapter: one input path (Pointer Events) for touch, mouse and pen, so controls work inside embeds and on desktop ----------
+if(window.PointerEvent){const act=new Map(),W=window,fire=(type,t,tgt)=>{const ev=new Event(type,{bubbles:true,cancelable:true});ev.inSyn=true;ev.changedTouches=[t];ev.touches=Array.from(act.values());ev.targetTouches=ev.touches;(tgt&&tgt.isConnected?tgt:document.body).dispatchEvent(ev)};
+ const wake=()=>{try{if(AC&&AC.state==='suspended')AC.resume()}catch(e){}};
+ for(const ty of['touchstart','touchmove','touchend','touchcancel'])W.addEventListener(ty,e=>{if(e.inSyn)return;e.stopImmediatePropagation();if(e.cancelable)e.preventDefault();if(ty==='touchend')wake()},{capture:true,passive:false});
+ let lastP=-1e9;const mt=e=>({identifier:'mouse',clientX:e.clientX,clientY:e.clientY,pageX:e.pageX,pageY:e.pageY,target:e.target});
+ for(const ty of['mousedown','mousemove','mouseup','click','dblclick','contextmenu'])W.addEventListener(ty,e=>{if(e.inSyn)return;if(ty!=='mousemove')e.stopImmediatePropagation();if(ty==='contextmenu')e.preventDefault();if(ty==='click')wake();
+  if(performance.now()-lastP<700)return; // pointer events are arriving, so this mouse event is a duplicate
+  if(ty==='mousedown'&&e.button===0&&!act.has('mouse')){const t=mt(e);act.set('mouse',t);fire('touchstart',t,t.target)}
+  else if(ty==='mousemove'){const t=act.get('mouse');if(t){t.clientX=e.clientX;t.clientY=e.clientY;fire('touchmove',t,t.target)}}
+  else if(ty==='mouseup'){const t=act.get('mouse');if(t){t.clientX=e.clientX;t.clientY=e.clientY;act.delete('mouse');fire('touchend',t,t.target);wake()}}},{capture:true});
+ for(const ty of['pointerdown','pointermove','pointerup','pointercancel'])W.addEventListener(ty,()=>{lastP=performance.now()},{capture:true});
+ W.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;const t={identifier:e.pointerId,clientX:e.clientX,clientY:e.clientY,pageX:e.pageX,pageY:e.pageY,target:e.target};act.set(e.pointerId,t);try{if(e.target.releasePointerCapture&&e.target.hasPointerCapture&&e.target.hasPointerCapture(e.pointerId))e.target.releasePointerCapture(e.pointerId)}catch(x){}fire('touchstart',t,t.target)},{capture:true});
+ W.addEventListener('pointermove',e=>{const t=act.get(e.pointerId);if(!t)return;t.clientX=e.clientX;t.clientY=e.clientY;t.pageX=e.pageX;t.pageY=e.pageY;fire('touchmove',t,t.target)},{capture:true});
+ const end=ty=>e=>{const t=act.get(e.pointerId);if(!t)return;t.clientX=e.clientX;t.clientY=e.clientY;act.delete(e.pointerId);fire(ty,t,t.target);wake()};
+ W.addEventListener('pointerup',end('touchend'),{capture:true});W.addEventListener('pointercancel',end('touchcancel'),{capture:true});
+ W.addEventListener('blur',()=>{for(const t of Array.from(act.values())){act.delete(t.identifier);fire('touchcancel',t,t.target)}})}
+
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.domElement.id='g';renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.prepend(renderer.domElement);
 const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x9fd0ff,120,262);
 const cam=new THREE.PerspectiveCamera(65,1,0.3,266);
@@ -120,6 +138,7 @@ for(let i=0;i<=N;i++){
 // buildings
 const solids=[];// {minX,maxX,minZ,maxZ,h}
 const winMats=[];
+function winTexOld(base,lit){return canvasTex(64,128,(g)=>{g.fillStyle=base;g.fillRect(0,0,64,128);for(let y=6;y<128;y+=16)for(let x=6;x<64;x+=14){g.fillStyle=Math.random()<lit?'#ffe9a8':'#1c2a3a';g.fillRect(x,y,8,10)}})}
 const fxPal={beach:['#f7b7c5','#a8e6cf','#8fd8e8','#ffd3a5','#fff1d0','#c9b6f2'],sub:['#e8d8c0','#d9c2a5','#f0e6d2','#cfd8c8'],down:['#3d5a73','#2e4257','#4a6b85','#56707f','#39485a']},fxRoofGeo=new THREE.ConeGeometry(1,1,4),fxRoofMat=new THREE.MeshStandardMaterial({color:0xa5482f,roughness:.85});const palette=['#c9cfd6','#e0b48a','#9fb3c8','#d8d0b8','#b88a7a','#8f9aa6','#e6e1d3','#a8c5b5'];
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){
  const cx=roadCenter(i)+CELL/2,cz=roadCenter(j)+CELL/2;
@@ -142,6 +161,9 @@ for(let i=0;i<N;i++)for(let j=0;j<N;j++){
   solids.push({minX:bx-w/2,maxX:bx+w/2,minZ:bz-d/2,maxZ:bz+d/2,h:h})}
  // street trees on corners
  tree(cx-BLOCK/2+2,cz-BLOCK/2+2);tree(cx+BLOCK/2-2,cz+BLOCK/2-2)}
+function treeOld(x,z){const g=new THREE.Group();const t=new THREE.Mesh(new THREE.BoxGeometry(.6,3,.6),new THREE.MeshStandardMaterial({color:0x7a5230}));t.position.y=1.8;t.castShadow=true;g.add(t);
+ for(let k=0;k<3;k++){const l=new THREE.Mesh(new THREE.BoxGeometry(2.6-k*.6,1.2,2.6-k*.6),new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(.3+Math.random()*.05,.6,.3+k*.05)}));l.position.y=3.6+k*1.1;l.castShadow=true;g.add(l)}
+ g.position.set(x,0,z);scene.add(g);solids.push({minX:x-.4,maxX:x+.4,minZ:z-.4,maxZ:z+.4,h:3})}
 // street lights
 const lampMats=[];const lampMat=new THREE.MeshStandardMaterial({color:0xffffee,emissive:0xffe9a0,emissiveIntensity:0});
 for(let i=0;i<=N;i++)for(let j=0;j<N;j++){const x=roadCenter(i)+ROAD/2+0.8,z=roadCenter(j)+CELL/2;
@@ -155,6 +177,14 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(600,32,16),new THREE.ShaderMat
 const starsGeo=new THREE.BufferGeometry();const sp=[];for(let i=0;i<800;i++){const v=new THREE.Vector3().randomDirection();if(v.y<0.05)v.y=Math.abs(v.y)+.05;v.multiplyScalar(550);sp.push(v.x,v.y,v.z)}
 starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));const stars=new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xffffff,size:2,transparent:true,opacity:0}));scene.add(stars);
 // ---------- character ----------
+function makePersonOld(shirtCol,pantsCol,skinCol){const g=new THREE.Group();const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.7});
+ function limb(w,h,d,m,x,y){const p=new THREE.Group();const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.y=-h/2;b.castShadow=true;p.add(b);p.position.set(x,y,0);g.add(p);return p}
+ const torso=new THREE.Mesh(new THREE.BoxGeometry(1,1,.5),M(shirtCol));torso.position.y=1.5;torso.castShadow=true;g.add(torso);
+ const head=new THREE.Mesh(new THREE.BoxGeometry(.75,.75,.75),M(skinCol));head.position.y=2.4;head.castShadow=true;g.add(head);
+ const cap=new THREE.Mesh(new THREE.BoxGeometry(.8,.25,.95),M(shirtCol));cap.position.set(0,2.85,-.08);g.add(cap);
+ const eyes=new THREE.Mesh(new THREE.BoxGeometry(.5,.1,.02),M(0x111111));eyes.position.set(0,2.45,-.39);g.add(eyes);
+ g.userData={armL:limb(.38,1,.38,M(skinCol),-.7,2),armR:limb(.38,1,.38,M(skinCol),.7,2),legL:limb(.44,1,.44,M(pantsCol),-.24,1),legR:limb(.44,1,.44,M(pantsCol),.24,1)};
+ return g}
 const player=makePerson(0xff5a36,0x23324d,0xf1c27d);player.userData.gun.visible=true;scene.add(player);
 // pedestrians
 const peds=[];for(let k=0;k<90;k++){const p=makePerson(new THREE.Color().setHSL(Math.random(),.7,.55),new THREE.Color().setHSL(Math.random(),.4,.3),[0xf1c27d,0xc68642,0x8d5524,0xe0ac69][k%4]);
@@ -162,6 +192,18 @@ const peds=[];for(let k=0;k<90;k++){const p=makePerson(new THREE.Color().setHSL(
  p.userData.path={cx,cz,r:BLOCK/2-1.2,t:Math.random()*4,dir:Math.random()<.5?1:-1,spd:.8+Math.random()*.5};scene.add(p);peds.push(p)}
 // ---------- cars ----------
 const carColors=[0xe63946,0x1d70b8,0xf4a261,0x2a9d8f,0xffffff,0x222222,0x9b5de5,0xffd60a];
+function makeCarOld(col,tyIn){const g=new THREE.Group();const body=new THREE.MeshStandardMaterial({color:col,metalness:.5,roughness:.3});
+ const b=new THREE.Mesh(new THREE.BoxGeometry(2.2,.8,4.4),body);b.position.y=.8;b.castShadow=true;g.add(b);
+ const top=new THREE.Mesh(new THREE.BoxGeometry(1.9,.7,2.2),body);top.position.set(0,1.55,.2);top.castShadow=true;g.add(top);
+ const glass=new THREE.MeshStandardMaterial({color:0x223344,metalness:.8,roughness:.05});
+ const ws=new THREE.Mesh(new THREE.BoxGeometry(1.8,.55,.05),glass);ws.position.set(0,1.55,-.92);g.add(ws);const rw=ws.clone();rw.position.z=1.32;g.add(rw);
+ const sideL=new THREE.Mesh(new THREE.BoxGeometry(.05,.5,1.9),glass);sideL.position.set(-.96,1.55,.2);g.add(sideL);const sideR=sideL.clone();sideR.position.x=.96;g.add(sideR);
+ const wm=new THREE.MeshStandardMaterial({color:0x111111});g.userData.wheels=[];
+ for(const [x,z] of [[-1.05,-1.4],[1.05,-1.4],[-1.05,1.4],[1.05,1.4]]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.35,16),wm);w.rotation.z=Math.PI/2;w.position.set(x,.42,z);w.castShadow=true;g.add(w);g.userData.wheels.push(w)}
+ const hl=new THREE.MeshStandardMaterial({color:0xffffee,emissive:0xffffcc,emissiveIntensity:.3});for(const x of[-.7,.7]){const h=new THREE.Mesh(new THREE.BoxGeometry(.4,.2,.05),hl);h.position.set(x,.9,-2.21);g.add(h)}
+ const tl=new THREE.MeshStandardMaterial({color:0xff2222,emissive:0xff0000,emissiveIntensity:.4});for(const x of[-.7,.7]){const h=new THREE.Mesh(new THREE.BoxGeometry(.4,.2,.05),tl);h.position.set(x,.9,2.21);g.add(h)}
+ const ty=tyIn===undefined?Math.random():tyIn;if(ty<.22){g.scale.set(1.02,.8,1.08);const sp=new THREE.Mesh(new THREE.BoxGeometry(2.1,.12,.5),body);sp.position.set(0,1.42,2.05);g.add(sp);g.userData.max=56}else if(ty<.4){g.scale.set(1.12,1.22,1.08);g.userData.max=31}
+ return g}
 const cars=[];// parked/drivable
 for(let k=0;k<50;k++){const c=makeCar(carColors[k%carColors.length]);const i=Math.floor(Math.random()*(N+1)),j=Math.floor(Math.random()*N);
  c.position.set(roadCenter(i)+ROAD/2-1.6,0,roadCenter(j)+CELL/2+(Math.random()-.5)*20);c.rotation.y=Math.PI;scene.add(c);cars.push({m:c,speed:0,steer:0})}
@@ -1099,6 +1141,12 @@ MODS.push(function(dt){
  fxWasGround=onGround;fxChute.visible=fxChOpen;if(fxChOpen){fxChute.position.set(pos.x,pos.y+5.6,pos.z);fxChute.rotation.y=facing;fxChute.rotation.z=Math.sin(T*1.5)*.06}});
 
 if(typeof vhDamage==='function'){const d0=vhDamage;vhDamage=function(n){d0(n*.4)}}
+
+// ---------- keyboard for desktop play ----------
+{const K={};const mv=()=>{if(joy.id!==null&&joy.id!=='kb')return;const x=(K.d||K.arrowright?1:0)-(K.a||K.arrowleft?1:0),y=(K.s||K.arrowdown?1:0)-(K.w||K.arrowup?1:0);if(x||y){joy.id='kb';joy.x=x;joy.y=y}else if(joy.id==='kb'){joy.id=null;joy.x=joy.y=0}};
+ addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(state==='ready'){state='play';$('msg').style.display='none';audio()}K[k]=1;mv();if(k===' '){jumpQ=true;e.preventDefault()}if(k==='e'||k==='enter')carQ=true;if(k==='m'&&typeof fxToggleMap==='function')fxToggleMap();if(k.indexOf('arrow')===0)e.preventDefault()});
+ addEventListener('keyup',e=>{K[e.key.toLowerCase()]=0;mv()});addEventListener('blur',()=>{for(const k in K)K[k]=0;mv()});
+ addEventListener('wheel',e=>{camPitch=Math.max(.05,Math.min(1.3,camPitch+e.deltaY*.0015))},{passive:true})}
 
 // ---------- main loop ----------
 let last=performance.now(),T=0,mapTick=0;
