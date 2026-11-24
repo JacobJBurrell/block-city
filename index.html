@@ -420,7 +420,7 @@ let rain=0,rainTarget=0,weatherT=70;
 const rainN=1600,rainGeo=new THREE.BufferGeometry(),rainPos=new Float32Array(rainN*6);rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPos,3));
 const rainMesh=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xaabbcc,transparent:true,opacity:0}));rainMesh.frustumCulled=false;scene.add(rainMesh);
 for(let i=0;i<rainN;i++){rainPos[i*6]=(Math.random()-.5)*60;rainPos[i*6+1]=Math.random()*30;rainPos[i*6+2]=(Math.random()-.5)*60}
-function weatherTick(dt){weatherT-=dt;if(weatherT<=0){rainTarget=rainTarget>0?0:1;weatherT=rainTarget?60+Math.random()*50:90+Math.random()*90;if(rainTarget)toast('Rain rolling in')}
+function weatherTick(dt){weatherT-=dt;if(weatherT<=0){rainTarget=rainTarget>0?0:1;weatherT=rainTarget?60+Math.random()*50:90+Math.random()*90;}
  rain+=(rainTarget-rain)*Math.min(1,dt*.15);
  const k=1-rain*.5;skyU.top.value.multiplyScalar(k);skyU.bot.value.lerp(new THREE.Color(.35,.37,.4).multiplyScalar(skyU.bot.value.r+.05),rain*.6);sun.intensity*=1-rain*.6;
  rainMesh.material.opacity=rain*.55;if(rain>.02){rainMesh.position.set(cam.position.x,cam.position.y-10,cam.position.z);
@@ -1790,8 +1790,6 @@ if(typeof vhDamage==='function'){const d0=vhDamage;vhDamage=function(n){d0(n*.4)
 function fxHasWay(){return typeof mpWay!=='undefined'&&!!mpWay}
 function fxTgt(){return fxHasWay()?mpWay:mission.target}
 if(typeof cpPh!=='undefined'){cpPh.style.left='14px';cpPh.style.top='calc(env(safe-area-inset-top,0px) + 70px)';cpPh.style.width='44px';cpPh.style.height='44px'}
-// no rain
-MODS.push(function(){weatherT=1e9;rainTarget=0;rain=0});
 
 // ---------- keyboard for desktop play ----------
 {const K={};const mv=()=>{if(joy.id!==null&&joy.id!=='kb')return;const x=(K.d||K.arrowright?1:0)-(K.a||K.arrowleft?1:0),y=(K.s||K.arrowdown?1:0)-(K.w||K.arrowup?1:0);if(x||y){joy.id='kb';joy.x=x;joy.y=y}else if(joy.id==='kb'){joy.id=null;joy.x=joy.y=0}};
