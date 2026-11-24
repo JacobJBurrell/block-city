@@ -1,0 +1,6 @@
+Character models and animations converted from the Microsoft Rocketbox Avatar Library
+https://github.com/microsoft/Microsoft-Rocketbox
+Copyright (c) Microsoft Corporation. MIT License.
+
+Files: rb_player (Male_Adult_20), rb_m1 (Male_Adult_01), rb_m2 (Male_Adult_08), rb_m3 (Male_Adult_12), rb_m4 (Male_Adult_16), rb_m5 (Male_Adult_09), rb_f1 (Female_Adult_01), rb_f2 (Female_Adult_03), rb_f3 (Female_Adult_08), rb_f4 (Female_Adult_17), rb_g1 (Male_Adult_18), rb_g2 (Male_Adult_17), rb_cop (Police_Male_03), rb_swat (Police_Male_02), rb_army (Military_Male_01).
+rb_anims.json: m/f walk_neutral, run_neutral, idle_neutral_01, m_sit_chair_breathe_01.
