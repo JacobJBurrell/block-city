@@ -28,7 +28,7 @@ canvas#g{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
 <body><div id="hud"><div id="cash">$0</div><div id="cn">● 0</div><div id="clock"></div><div id="kills">✖ 0</div></div><div id="xh"></div><div id="dmg"></div><div id="stars"></div><div id="bars"><div><div id="hpb"></div></div><div><div id="arb"></div></div></div><div id="lock"></div>
 <canvas id="map" width="260" height="260"></canvas><div id="mission"></div>
 <div id="stick"><div id="knob"></div></div><div id="jump" class="btn">JUMP</div><div id="car" class="btn">CAR</div><div id="fire" class="btn">FIRE</div><div id="wpn" class="btn">PISTOL</div><div id="toast"></div>
-<div id="msg"><h1>BLOCK CITY</h1><p style="opacity:.7;font-size:12px">version 15</p><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
+<div id="msg"><h1>BLOCK CITY</h1><p style="opacity:.7;font-size:12px">version 16</p><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/DRACOLoader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/SkeletonUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/FXAAShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 if(!window.THREE){document.getElementById('msg').innerHTML='<h1>No internet</h1><p>Connect once so the 3D engine can load.</p>'}else{
@@ -3170,9 +3170,7 @@ MODS.push(function(){if(driving){const u=driving.m.userData;if(!u.kind)u.kind=dr
 
 // ---- v5 fixes ----
 // damage goes to the vehicle first; no vehicle health bar
-if(typeof vhDamage==='function'&&typeof vhHurt0==='function'){hurt=function(n){if(driving&&state==='play'&&!driving.dead){if(driving.vhBike){vhDamage(n*1.5);vhHurt0(n*.6)}else{vhDamage(n*2.5);shake=Math.max(shake,.15)}}else vhHurt0(n)};
- const st=document.createElement('style');st.textContent='#vhbw{display:none!important}';document.head.appendChild(st);
- const bp=blowParked;blowParked=function(c){const own=c.vhFire!==undefined&&c.vhFire<=0,c0=cash,w0=wantedScore;bp(c);if(own){cash=c0;wantedScore=w0}}}
+
 // tap the minimap to expand it
 let fxBig=false;const fxMapEl=$('map');
 {const dm=drawMap;drawMap=function(){const g=mapC;if(!fxBig){dm();return}const C=720,z=C/(260*2.2);g.setTransform(1,0,0,1,0,0);g.fillStyle='#2e6b33';g.fillRect(0,0,C,C);g.setTransform(z,0,0,z,C/2-130*z,C/2-130*z);
@@ -3211,7 +3209,7 @@ MODS.push(function(dt){
  else{if(!fxWasGround&&fxVy<-24)hurt((-fxVy-24)*2.6);fxChOpen=false;fxVy=0}
  fxWasGround=onGround;fxChute.visible=fxChOpen;if(fxChOpen){fxChute.position.set(pos.x,pos.y+5.6,pos.z);fxChute.rotation.y=facing;fxChute.rotation.z=Math.sin(T*1.5)*.06}});
 
-if(typeof vhDamage==='function'){const d0=vhDamage;vhDamage=function(n){d0(n*.4)}}
+
 
 // the pointer follows your own map marker when one is set, otherwise the mission
 function fxHasWay(){return typeof mpWay!=='undefined'&&!!mpWay}
@@ -3734,7 +3732,7 @@ MODS.push(function(dt){
  'body.ui-air #uiRk{display:flex}html body.ui-air.ui-air:not(.ui-zz) #jump,html body.ui-air.ui-air:not(.ui-zz) #vhdn{display:none!important}',
  'html body.ui-air.ui-air:not(.ui-lh) #fire{right:calc(var(--sr) + 104px)!important;bottom:calc(var(--sb) + 28px)!important;width:88px!important;height:88px!important}html body.ui-air.ui-air:not(.ui-lh) #wpn{right:calc(var(--sr) + 118px)!important;bottom:calc(var(--sb) + 128px)!important;width:58px!important;height:58px!important}',
  'body.ui-air.ui-lh #uiRk{right:auto;left:calc(var(--sl) + 16px)}html body.ui-air.ui-air.ui-lh #fire{left:calc(var(--sl) + 104px)!important;bottom:calc(var(--sb) + 28px)!important;width:88px!important;height:88px!important}html body.ui-air.ui-air.ui-lh #wpn{left:calc(var(--sl) + 118px)!important;bottom:calc(var(--sb) + 128px)!important;width:58px!important;height:58px!important}',
- 'html body.ui-air.ui-air:not(.ui-zz) #car{top:calc(var(--st) + 186px)!important;bottom:auto!important;right:calc(var(--sr) + 14px)!important;left:auto!important;width:50px!important;height:50px!important;font-size:7.5px!important}',
+ 'html body.ui-air.ui-air:not(.ui-zz) #car{top:calc(var(--st) + 128px)!important;bottom:auto!important;left:calc(var(--sl) + 14px)!important;right:auto!important;width:50px!important;height:50px!important;font-size:7.5px!important}',
  '#uiSpd{position:fixed;display:none;left:50%;transform:translateX(-50%);bottom:calc(var(--sb) + 10px);z-index:4;color:#fff;font-weight:800;font-size:26px;line-height:1;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none;font-variant-numeric:tabular-nums}#uiSpd small{display:block;font-size:8.5px;letter-spacing:2px;opacity:.75;margin-top:2px}body.ui-title #uiSpd,body.ui-title #uiRk{display:none!important}',
  '.ui-kbc{display:grid;grid-template-columns:repeat(5,auto);gap:6px 14px;max-width:560px;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(10,12,18,.72);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.ui-kbc b{grid-column:1/-1;font-size:9px;letter-spacing:.3em;opacity:.6}.ui-kbc span{display:inline-block;margin-right:6px;padding:2px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.3);font-size:9px;opacity:.9}body.ui-p .ui-kbc{grid-template-columns:repeat(2,auto)}'
  ].join('');document.head.appendChild(st)}
