@@ -62,3 +62,10 @@ const fxHint=/^(Driving! Push up|Get closer to|Boat! Push up|Hold to bail out|UP
 let fxHints={};try{fxHints=JSON.parse(localStorage.getItem('blockcity_hints')||'{}')||{}}catch(e){}
 function fxToastOk(s){s=String(s);if(fxQuiet.test(s))return false;const m=s.match(fxHint);if(m){const k=m[1];fxHints[k]=(fxHints[k]||0)+1;try{localStorage.setItem('blockcity_hints',JSON.stringify(fxHints))}catch(e){}return fxHints[k]<=2}return true}
 {const t0=toast;toast=function(s){if(fxToastOk(s)){t0(s);return}const el=$('toast'),tx=el.textContent,op=el.style.opacity;t0(s);el.textContent=tx;el.style.opacity=op}}
+// startup: hand everything built so far (the base city and all world modules) to the GPU driver to compile now, so it links shaders on its own threads
+// while input, map, ui and gfx still run; gfx/mod.js (gxStart) waits for whatever is still linking before the first frame. A stand-in sky reflection map
+// gives the programs the same layout the real one (made by envTick on the first frame) will have.
+let fxEarly=[];const fxEarlyT0=performance.now();
+try{if(location.hash.indexOf('gxnowarm')<0&&typeof gxIssue==='function'){const e0=scene.environment,fk=new THREE.Texture();fk.mapping=THREE.CubeUVReflectionMapping;fk.image={width:768,height:1024};if(!e0)scene.environment=fk;
+ try{fxEarly=gxIssue(null,composer.renderTarget1,null,false,gxNear())}finally{scene.environment=e0}}}catch(e){fxEarly=[]}
+const fxEarlyMs=performance.now()-fxEarlyT0;

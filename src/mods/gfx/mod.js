@@ -5,7 +5,7 @@ const gxChunks=[],gxStats={calls:0,tris:0,merged:0,removed:0,on:false},gxNoBatch
 function gxBatch(){scene.updateMatrixWorld(true);const C=110,chunks={},rm=[],winSet=new Set(winMats),shared={},sm={};
  const M=(k,f)=>sm[k]||(sm[k]=f());
  const add=(x,z,mk,mat,geo,sh)=>{const k=Math.floor(x/C)+'_'+Math.floor(z/C),c=chunks[k]||(chunks[k]={m:{},inst:{}});(c.m[mk]||(c.m[mk]={mat,g:[],sh})).g.push(geo)};
- const prep=(mesh,uv,ao)=>{let g=mesh.geometry.clone();if(g.index)g=g.toNonIndexed();for(const k of Object.keys(g.attributes))if(k!=='position'&&k!=='normal'&&k!=='uv')g.deleteAttribute(k);
+ const prep=(mesh,uv,ao)=>{const s0=mesh.geometry;let g=new THREE.BufferGeometry();for(const k of['position','normal','uv'])if(s0.attributes[k])g.setAttribute(k,s0.attributes[k]);if(s0.index){g.setIndex(s0.index);g=g.toNonIndexed()}else g=g.clone();   // only the three kept attributes are copied
   if(uv){const u=g.attributes.uv;for(let i=0;i<u.count;i++)u.setXY(i,u.getX(i)*uv.x,u.getY(i)*uv.y)}
   if(ao){const p=g.attributes.position,n=p.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){const v=p.getY(i)<0?.6:1;a[i*3]=a[i*3+1]=a[i*3+2]=v}g.setAttribute('color',new THREE.BufferAttribute(a,3))}
   g.applyMatrix4(mesh.matrixWorld);return g};
@@ -35,7 +35,7 @@ function gxBatch(){scene.updateMatrixWorld(true);const C=110,chunks={},rm=[],win
  for(const o of rm){scene.remove(o);if(o.isMesh&&o.geometry!==roofGeo&&!(typeof fxRoofGeo!=='undefined'&&o.geometry===fxRoofGeo))o.geometry.dispose();if(o.isMesh&&winSet.has(o.material))o.material.dispose()}
  winMats.length=0;for(const k in shared)winMats.push(shared[k]);
  gxStats.merged=built.length;gxStats.removed=rm.length;gxStats.on=true}
-if(!gxNoBatch){try{gxBatch()}catch(e){console.log('gx batch skipped',e)}}
+const gxT0=performance.now();if(!gxNoBatch){try{gxBatch()}catch(e){console.log('gx batch skipped',e)}}const gxTB=performance.now()-gxT0;
 // ----- 2. upscale (bicubic with anti-ringing clamp) + contrast-adaptive sharpening -----
 let gxPass=null;
 try{if(!gxNoUp&&THREE.FullScreenQuad){const vs='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
@@ -57,7 +57,7 @@ try{if(!gxNoUp&&THREE.FullScreenQuad){const vs='varying vec2 vUv;void main(){vUv
   'float lobe=max(-.1875,min(max(lv.r,max(lv.g,lv.b)),0.))*sharp;',
   'gl_FragColor=vec4(clamp((lobe*(b+d+f+h)+e)/(4.*lobe+1.),0.,1.),1.);}'].join('\n')});
  const quad=new THREE.FullScreenQuad(m1),rt=new THREE.WebGLRenderTarget(4,4,{depthBuffer:false}),v=new THREE.Vector2();
- gxPass={enabled:true,needsSwap:false,clear:false,renderToScreen:true,setSize:function(){},dispose:function(){},
+ gxPass={gxMats:[m1,m2],enabled:true,needsSwap:false,clear:false,renderToScreen:true,setSize:function(){},dispose:function(){},
   render:function(r,wb,rb){r.getDrawingBufferSize(v);if(rt.width!==v.x||rt.height!==v.y)rt.setSize(v.x,v.y);
    m1.uniforms.tDiffuse.value=rb.texture;m1.uniforms.src.value.set(rb.width,rb.height);quad.material=m1;r.setRenderTarget(rt);quad.render(r);
    m2.uniforms.tDiffuse.value=rt.texture;m2.uniforms.px.value.set(1/v.x,1/v.y);m2.uniforms.sharp.value=gxSharp*4;quad.material=m2;r.setRenderTarget(null);quad.render(r)}};
@@ -153,3 +153,63 @@ function gxProxy(rl,u){u.gxProx=true;const bb=new THREE.Box3().setFromObject(rl)
  const inv=new THREE.Matrix4().copy(rl.matrixWorld).invert(),sz=bb.getSize(new THREE.Vector3()),c=bb.getCenter(new THREE.Vector3()).applyMatrix4(inv);m.position.set(c.x,0,c.z);rl.add(m)}
 {const a1=gxApply;gxApply=function(q){const o=a1(q);try{const i=Math.max(1,Math.min(10,Math.round(q)))-1;if(typeof rlMaxCars!=='undefined'){rlMaxCars=[0,0,1,2,2,3,3,4,5,6][i];o.hdCars=rlMaxCars}if(typeof rlMaxPeople!=='undefined'){rlMaxPeople=[0,2,4,6,8,10,12,16,18,20][i];o.hdPeople=rlMaxPeople}gxLodPD=[35,40,45,50,55,60,60,65,70,75][i];gxLodCD=[50,55,60,70,75,80,85,90,100,110][i]}catch(e){}return o}}
 gxApply(gxQ);
+
+// ----- 5. startup: phones start Auto two steps lower (auto raises it back to the saved level when the frame rate allows) -----
+const gxPhone=(()=>{try{return (navigator.maxTouchPoints||0)>0&&Math.min(screen.width,screen.height)<600}catch(e){return false}})();
+try{if(gxPhone&&(typeof uiS==='undefined'||uiS.auto)&&gxQ>6)gxApply(6)}catch(e){}
+// ----- 6. shader warm-up: compile every program the scene needs in parallel before the first frame -----
+// three r147 compiles and links one program at a time and blocks on each (getUniforms right after linkProgram), so the first frame used to stall
+// ~2 s on a laptop. Here every material is compiled through a throw-away clone with three's uniform lookup stubbed out, which only issues
+// compile+link to the GPU; with KHR_parallel_shader_compile the driver links them on worker threads while the boot card stays up, and the
+// real materials then find the same (already linked) programs in three's program cache. A miss here only means a program compiles later as before.
+const gxGL=renderer.getContext(),gxPar=(()=>{try{return gxGL.getExtension('KHR_parallel_shader_compile')}catch(e){return null}})(),gxWarmStats={n:0,issue:0,wait:0,par:!!gxPar,batch:Math.round(gxTB),gfx:Math.round(performance.now()-gxT0),boot:Math.round(performance.now())};
+function gxIssue(only,rt,root,allDepth,near){root=root||scene;const progs=renderer.info.programs,push0=progs.push,fresh=[],dummy={seq:[],map:{}},ck=renderer.debug.checkShaderErrors,sw=[],inS=new Set();
+ if(only)only.traverse(o=>inS.add(o));
+ const one=x=>{const c=x.clone();c.onBeforeCompile=x.onBeforeCompile;c.customProgramCacheKey=x.customProgramCacheKey;return c};
+ const kind=o=>{const g=o.geometry,at=(g&&g.attributes)||{},ma=g&&g.morphAttributes;return (o.isInstancedMesh?'i'+(o.instanceColor?'c':''):'')+(o.isSkinnedMesh?'s':'')+(at.color?'c'+at.color.itemSize:'')+(at.tangent?'t':'')+(ma&&Object.keys(ma).length?'m'+Object.keys(ma).length:'')+(o.isPoints?'p':'')+(o.isLine?'l':'')+(o.isSprite?'S':'')};
+ // one compile pass: every object gets a clone of what f(o,m) returns (or nothing), duplicates by signature are skipped
+ // near (startup only): skip things whose bounds are more than near.r from the player; far districts compile when first seen, as before
+ const far=new Set(),v=new THREE.Vector3(),findFar=()=>{if(near)for(const q of sw){const o=q[0],g=o.geometry;if(o.isInstancedMesh||!g||!g.attributes||!g.attributes.position||q[1].fog===false)continue;   // unfogged things are landmarks seen from afar
+  if(!g.boundingSphere)g.computeBoundingSphere();const bs=g.boundingSphere;v.copy(bs.center).applyMatrix4(o.matrixWorld);if(Math.hypot(v.x-near.x,v.z-near.z)-bs.radius*o.matrixWorld.getMaxScaleOnAxis()>near.r)far.add(o)}};
+ const pass=f=>{const seen=new Set();for(const q of sw){const o=q[0],m=q[1];const r=((only&&!inS.has(o))||far.has(o))?null:f(o,m);if(!r||seen.has(r[0])){o.material=null;continue}seen.add(r[0]);o.material=r[1]}renderer.compile(root,cam)};
+ // programs that already exist get the stub too: a clone that finds one still linking must not wait for it here
+ const old=progs.slice();for(const p of old){p.gxU=p.getUniforms;p.getUniforms=function(){return dummy}}
+ renderer.debug.checkShaderErrors=false;progs.push=function(p){fresh.push(p);p.gxU=p.getUniforms;p.getUniforms=function(){return dummy};return push0.apply(this,arguments)};
+ const rt0=renderer.getRenderTarget();
+ try{root.traverse(o=>{if(o.material)sw.push([o,o.material])});findFar();renderer.setRenderTarget(rt);
+  pass((o,m)=>[(Array.isArray(m)?m.map(x=>x.uuid).join():m.uuid)+kind(o),Array.isArray(m)?m.map(one):one(m)]);
+  // the sun's shadow pass draws casters with three's shared depth material, set up per caster as WebGLShadowMap does (side flipped, alpha test map copied)
+  // (three draws the shadow pass without a scene, so no fog)
+  if(renderer.shadowMap.enabled&&sun.castShadow&&renderer.shadowMap.type!==THREE.VSMShadowMap){const fg=root.fog;root.fog=null;try{pass((o,m)=>{if(Array.isArray(m)||!(o.isMesh||o.isLine||o.isPoints)||!(o.castShadow||allDepth)||o.customDepthMaterial)return null;
+    const d=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}),side=m.shadowSide!==null&&m.shadowSide!==undefined?m.shadowSide:[1,0,2][m.side];
+    d.side=side;d.alphaMap=m.alphaMap||null;d.alphaTest=m.alphaTest||0;d.map=m.map||null;d.displacementMap=m.displacementMap||null;d.displacementScale=m.displacementScale===undefined?1:m.displacementScale;d.wireframe=!!m.wireframe;
+    return [kind(o)+side+(d.map?'M':'')+(d.alphaMap?'A':'')+(d.alphaTest>0?'T':'')+(d.displacementMap?'D':'')+(d.wireframe?'W':''),d]})}finally{root.fog=fg}}}
+ catch(e){console.log('gx warm',e)}
+ finally{renderer.setRenderTarget(rt0);for(const q of sw)q[0].material=q[1];delete progs.push;for(const p of old.concat(fresh)){p.getUniforms=p.gxU;delete p.gxU}renderer.debug.checkShaderErrors=ck}
+ return fresh}
+// post-processing materials draw full-screen quads outside the scene (no lights, no fog): compile them in an empty scene, into an offscreen target, and the last one to the screen
+function gxIssuePost(){const fresh=[];try{const ms=[],last=[],geo=new THREE.PlaneGeometry(2,2);
+  for(const p of composer.passes){if(p===gxPass){if(p.gxMats){ms.push(p.gxMats[0]);last.push(p.gxMats[1])}continue}
+   for(const k in p){const v=p[k],L=Array.isArray(v)?v:[v];for(const m of L)if(m&&m.isMaterial&&!m.isMeshBasicMaterial)(p.renderToScreen&&p.material===m?last:ms).push(m)}}
+  for(const [L,rt] of [[ms,composer.renderTarget1],[last,null]]){if(!L.length)continue;const s=new THREE.Scene();for(const m of L)s.add(new THREE.Mesh(geo,m));fresh.push(...gxIssue(null,rt,s))}}catch(e){console.log('gx warm post',e)}return fresh}
+function gxReady(fr,i){if(!gxPar)return fr.length;while(i<fr.length&&(!fr[i].program||gxGL.getProgramParameter(fr[i].program,0x91B1)))i++;return i}
+// warm an object that arrives later (downloaded models): issue its programs now, call back once they are linked (never more than a few seconds)
+function gxWarmObj(obj,done){let fr=[];try{const add=!obj.parent;if(add)scene.add(obj);fr=gxIssue(obj,composer.renderTarget1,null,true);if(add)scene.remove(obj);gxWarmStats.late=(gxWarmStats.late||0)+fr.length;if(gxWarmStats.set)for(const p of fr)gxWarmStats.set.add(p)}catch(e){}
+ if(!done)return;let i=0;const t0=performance.now();(function w(){i=gxReady(fr,i);if(i<fr.length&&performance.now()-t0<4000)setTimeout(w,50);else done()})()}
+function gxNear(){scene.updateMatrixWorld();return {x:pos.x,z:pos.z,r:Math.max(220,cam.far+40)}}
+function gxStart(f){const t0=performance.now();let fr=[];
+ if(location.hash.indexOf('gxnowarm')<0){
+  // the sky reflection map is made in the first frame (envTick); compile against a stand-in with the same PMREM layout (256 px cube: 768x1024 atlas),
+  // then render the real one while the driver links everything else
+  let fake=null;try{if(!scene.environment){fake=new THREE.Texture();fake.mapping=THREE.CubeUVReflectionMapping;fake.image={width:768,height:1024};scene.environment=fake}}catch(e){}
+  // the reflection scene's own materials (PMREM renders it untoned, into a linear target)
+  try{if(fake&&typeof envScene!=='undefined'){const tm=renderer.toneMapping;renderer.toneMapping=THREE.NoToneMapping;try{fr=fr.concat(gxIssue(null,composer.renderTarget1,envScene))}finally{renderer.toneMapping=tm}}}catch(e){}
+  fr=fr.concat(gxIssue(null,composer.renderTarget1,null,false,gxNear()),gxIssuePost());
+  gxWarmStats.issue=Math.round(performance.now()-t0);
+  // then render the sky reflection map while the driver links (uploading every texture or pre-drawing vertex buffers here were tried too: on a slow CPU they cost more than they saved)
+  // (sky colours first, as the first frame would set them, so the map matches what the frame would have made)
+  try{if(fake){scene.environment=null;const sa=dayT*Math.PI*2,sh=Math.sin(sa),day=Math.max(0,Math.min(1,sh*3+.5));skyU.top.value.setRGB(.05+.18*day,.07+.4*day,.18+.66*day);skyU.bot.value.setRGB(.1+.65*day+.2*(1-day)*Math.max(0,1-Math.abs(sh)*4),.12+.77*day,.25+.75*day);if(typeof envTick==='function')envTick(0)}}catch(e){}}
+ // programs fixes/mod.js started early that the scene still uses (the batched city replaced some of them) are waited for too
+ try{if(typeof fxEarly!=='undefined'){const used=fxEarly.filter(p=>p.usedTimes>1);gxWarmStats.early=fxEarly.length;gxWarmStats.earlyMs=Math.round(fxEarlyMs);gxWarmStats.earlyUsed=used.length;fr=used.concat(fr)}}catch(e){}
+ gxWarmStats.n=fr.length;gxWarmStats.set=new Set(fr);let i=0;
+ (function w(){i=gxReady(fr,i);if(i<fr.length&&performance.now()-t0<15000){requestAnimationFrame(w);return}gxWarmStats.wait=Math.round(performance.now()-t0);requestAnimationFrame(f)})()}

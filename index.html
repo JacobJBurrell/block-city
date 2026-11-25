@@ -28,7 +28,7 @@ canvas#g{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh}
 <body><div id="hud"><div id="cash">$0</div><div id="cn">● 0</div><div id="clock"></div><div id="kills">✖ 0</div></div><div id="xh"></div><div id="dmg"></div><div id="stars"></div><div id="bars"><div><div id="hpb"></div></div><div><div id="arb"></div></div></div><div id="lock"></div>
 <canvas id="map" width="260" height="260"></canvas><div id="mission"></div>
 <div id="stick"><div id="knob"></div></div><div id="jump" class="btn">JUMP</div><div id="car" class="btn">CAR</div><div id="fire" class="btn">FIRE</div><div id="wpn" class="btn">PISTOL</div><div id="toast"></div>
-<div id="uiBoot"><style>#uiBoot{position:fixed;left:0;top:0;right:0;bottom:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 42%,#1b2230 0%,#07090e 68%,#030406 100%);color:#e8ecf1;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;transition:opacity .45s ease;pointer-events:none}#uiBoot~#msg{display:none}#uiBoot b{font-size:clamp(34px,9vw,76px);font-weight:800;letter-spacing:.2em;margin-right:-.2em;line-height:1;text-align:center}#uiBoot div{width:150px;height:1px;margin:16px 0 12px;background:linear-gradient(90deg,transparent,#ffd23f,transparent)}#uiBoot small{font-size:10px;font-weight:700;letter-spacing:.42em;margin-right:-.42em;opacity:.55;animation:uiBootP 1.4s ease-in-out infinite}#uiBoot i{font-style:normal;font-size:11px;margin-top:14px;opacity:0;animation:uiBootL 0s 25s forwards}@keyframes uiBootP{50%{opacity:.25}}@keyframes uiBootL{to{opacity:.6}}</style><b>BLOCK CITY</b><div></div><small>LOADING</small><i>Still loading. The first visit needs an internet connection.</i></div><div id="msg"><h1>BLOCK CITY</h1><p style="opacity:.7;font-size:12px">version 25</p><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
+<div id="uiBoot"><style>#uiBoot{position:fixed;left:0;top:0;right:0;bottom:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 42%,#1b2230 0%,#07090e 68%,#030406 100%);color:#e8ecf1;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;transition:opacity .45s ease;pointer-events:none}#uiBoot~#msg{display:none}#uiBoot b{font-size:clamp(34px,9vw,76px);font-weight:800;letter-spacing:.2em;margin-right:-.2em;line-height:1;text-align:center}#uiBoot div{width:150px;height:1px;margin:16px 0 12px;background:linear-gradient(90deg,transparent,#ffd23f,transparent)}#uiBoot small{font-size:10px;font-weight:700;letter-spacing:.42em;margin-right:-.42em;opacity:.55;animation:uiBootP 1.4s ease-in-out infinite}#uiBoot i{font-style:normal;font-size:11px;margin-top:14px;opacity:0;animation:uiBootL 0s 25s forwards}@keyframes uiBootP{50%{opacity:.25}}@keyframes uiBootL{to{opacity:.6}}</style><b>BLOCK CITY</b><div></div><small>LOADING</small><i>Still loading. The first visit needs an internet connection.</i></div><div id="msg"><h1>BLOCK CITY</h1><p style="opacity:.7;font-size:12px">version 26</p><p>Walk or drive with the joystick, drag right side to look</p><p><b>Tap any person or car to lock on and shoot.</b> FIRE auto-aims only at cops and gangs who are after you</p><p>Tap the minimap to expand it. Gun button switches weapons</p><p>CAR steals any car: parked, moving, even cop cars</p><p>Crimes bring police. Purple gang owns the southeast. Grab glowing crates</p><p>CAR gets you in and out. Follow the beam for delivery jobs</p><p style="opacity:.8">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/CopyShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/LuminosityHighPassShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/shaders/FXAAShader.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/EffectComposer.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/RenderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/ShaderPass.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script>
 if(!window.THREE){document.getElementById('msg').innerHTML='<h1>No internet</h1><p>Connect once so the 3D engine can load.</p>'}else{
@@ -569,7 +569,7 @@ function rlPrepRB(k,g){const sc=g.scene,b={},A=rlAnims,fem=rlSex(k)==='f';sc.tra
  rlMk(C,'Idle',fem?'FIdle':'Idle',A);rlMk(C,'Walk',fem?'FWalk':'Walk',A);rlMk(C,'Run',fem?'FRun':'Run',A);rlMk(C,'Sit','Sit',A);
  C.vW=rlSpd(fem?'FWalk':'Walk',A)||1.4;C.vR=rlSpd(fem?'FRun':'Run',A)||4;C.sitH=(A.Sit&&A.Sit.p?A.Sit.p[1]:59)*kk*.0112;
  try{sc.updateMatrixWorld(true);const pv=b.Bip01_Pelvis||b.Bip01;C.hip=Math.max(.6,Math.min(1.3,pv.getWorldPosition(rlV()).y*C.scale))}catch(e){C.hip=1}
- rlChar[k]=C;rlT=0}
+ rlChar[k]=C;rlT=0;try{if(typeof gxWarmObj==='function')gxWarmObj(sc)}catch(e){}}   // gfx: start linking this look's shaders in parallel before anyone wears it
 // ---------- streaming: nothing big downloads before the title screen is up ----------
 // While the page builds the city and shows the title only the player's own look (and looks picked in the character screen) download; the crowd's looks
 // stream in from 1.6 s after the title is up, and everyone is a code-built person until their HD look arrives.
@@ -644,7 +644,7 @@ function rlCarReady(sc){sc.updateMatrixWorld(true);const wn=['wheel_fl','wheel_f
  add(mg(B.body),rest,'rlBody',1);add(mg(B.rest),rest,'rlRest');add(mg(B.light),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}),'rlLight');
  add(mg(B.glass),new THREE.MeshStandardMaterial({color:0x10151b,metalness:1,roughness:.05,transparent:true,opacity:.72}),'rlGlass');
  wn.forEach((n,i)=>{const o=new THREE.Group(),inn=new THREE.Group();wh[n].node.matrixWorld.decompose(o.position,o.quaternion,o.scale);inn.name='rlW'+i;inn.add(new THREE.Mesh(mg(wh[n].g),rest));o.add(inn);root.add(o)});
- rlCar={root};rlT=0}
+ const ready=()=>{rlCar={root};rlT=0};if(typeof gxWarmObj==='function')gxWarmObj(root,ready);else ready()}   // gfx links the car's shaders in parallel first, so the swap to the HD car does not stall a frame
 function rlSkin(g){const u=g.userData;if(!u.rlOld){u.rlOld=g.children.filter(o=>!o.userData.rlKeep&&o!==rlDriver);u.rlPaint=g.children[0].material;for(const o of u.rlOld)if(o.isMesh)o.scale.y=.8}
  if(!u.rl){const c=rlCar.root.clone(true);c.getObjectByName('rlBody').material=u.rlPaint;u.rlW=[0,1,2,3].map(i=>c.getObjectByName('rlW'+i));u.rl=c;g.add(c);if(u.rlBurnt){c.traverse(o=>{if(o.material){o.material=o.material.clone();if(o.material.color)o.material.color.multiplyScalar(.12);o.material.vertexColors=false;o.material.needsUpdate=true}})}}}
 function rlShow(g,on){const u=g.userData;if(on)rlSkin(g);if(!u.rlOld)return;for(const o of u.rlOld)o.visible=!on;if(u.rl)u.rl.visible=on;if(u.rlX){for(let i=0;i<3;i++)u.rlX[i].position.y=u.rlX[i].userData.y0-(on?.42:.3);u.rlX[3].visible=!on}}
@@ -5485,6 +5485,13 @@ const fxHint=/^(Driving! Push up|Get closer to|Boat! Push up|Hold to bail out|UP
 let fxHints={};try{fxHints=JSON.parse(localStorage.getItem('blockcity_hints')||'{}')||{}}catch(e){}
 function fxToastOk(s){s=String(s);if(fxQuiet.test(s))return false;const m=s.match(fxHint);if(m){const k=m[1];fxHints[k]=(fxHints[k]||0)+1;try{localStorage.setItem('blockcity_hints',JSON.stringify(fxHints))}catch(e){}return fxHints[k]<=2}return true}
 {const t0=toast;toast=function(s){if(fxToastOk(s)){t0(s);return}const el=$('toast'),tx=el.textContent,op=el.style.opacity;t0(s);el.textContent=tx;el.style.opacity=op}}
+// startup: hand everything built so far (the base city and all world modules) to the GPU driver to compile now, so it links shaders on its own threads
+// while input, map, ui and gfx still run; gfx/mod.js (gxStart) waits for whatever is still linking before the first frame. A stand-in sky reflection map
+// gives the programs the same layout the real one (made by envTick on the first frame) will have.
+let fxEarly=[];const fxEarlyT0=performance.now();
+try{if(location.hash.indexOf('gxnowarm')<0&&typeof gxIssue==='function'){const e0=scene.environment,fk=new THREE.Texture();fk.mapping=THREE.CubeUVReflectionMapping;fk.image={width:768,height:1024};if(!e0)scene.environment=fk;
+ try{fxEarly=gxIssue(null,composer.renderTarget1,null,false,gxNear())}finally{scene.environment=e0}}}catch(e){fxEarly=[]}
+const fxEarlyMs=performance.now()-fxEarlyT0;
 
 // ---------- keyboard for desktop play (Roblox defaults: WASD move, Up/Down arrows move, Left/Right arrows turn the camera, Space jump) ----------
 // In any vehicle every arrow key goes to the vehicle (steering, and the flight controls in planes, helicopters and jets), never to the camera.
@@ -6062,7 +6069,7 @@ const gxChunks=[],gxStats={calls:0,tris:0,merged:0,removed:0,on:false},gxNoBatch
 function gxBatch(){scene.updateMatrixWorld(true);const C=110,chunks={},rm=[],winSet=new Set(winMats),shared={},sm={};
  const M=(k,f)=>sm[k]||(sm[k]=f());
  const add=(x,z,mk,mat,geo,sh)=>{const k=Math.floor(x/C)+'_'+Math.floor(z/C),c=chunks[k]||(chunks[k]={m:{},inst:{}});(c.m[mk]||(c.m[mk]={mat,g:[],sh})).g.push(geo)};
- const prep=(mesh,uv,ao)=>{let g=mesh.geometry.clone();if(g.index)g=g.toNonIndexed();for(const k of Object.keys(g.attributes))if(k!=='position'&&k!=='normal'&&k!=='uv')g.deleteAttribute(k);
+ const prep=(mesh,uv,ao)=>{const s0=mesh.geometry;let g=new THREE.BufferGeometry();for(const k of['position','normal','uv'])if(s0.attributes[k])g.setAttribute(k,s0.attributes[k]);if(s0.index){g.setIndex(s0.index);g=g.toNonIndexed()}else g=g.clone();   // only the three kept attributes are copied
   if(uv){const u=g.attributes.uv;for(let i=0;i<u.count;i++)u.setXY(i,u.getX(i)*uv.x,u.getY(i)*uv.y)}
   if(ao){const p=g.attributes.position,n=p.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){const v=p.getY(i)<0?.6:1;a[i*3]=a[i*3+1]=a[i*3+2]=v}g.setAttribute('color',new THREE.BufferAttribute(a,3))}
   g.applyMatrix4(mesh.matrixWorld);return g};
@@ -6092,7 +6099,7 @@ function gxBatch(){scene.updateMatrixWorld(true);const C=110,chunks={},rm=[],win
  for(const o of rm){scene.remove(o);if(o.isMesh&&o.geometry!==roofGeo&&!(typeof fxRoofGeo!=='undefined'&&o.geometry===fxRoofGeo))o.geometry.dispose();if(o.isMesh&&winSet.has(o.material))o.material.dispose()}
  winMats.length=0;for(const k in shared)winMats.push(shared[k]);
  gxStats.merged=built.length;gxStats.removed=rm.length;gxStats.on=true}
-if(!gxNoBatch){try{gxBatch()}catch(e){console.log('gx batch skipped',e)}}
+const gxT0=performance.now();if(!gxNoBatch){try{gxBatch()}catch(e){console.log('gx batch skipped',e)}}const gxTB=performance.now()-gxT0;
 // ----- 2. upscale (bicubic with anti-ringing clamp) + contrast-adaptive sharpening -----
 let gxPass=null;
 try{if(!gxNoUp&&THREE.FullScreenQuad){const vs='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
@@ -6114,7 +6121,7 @@ try{if(!gxNoUp&&THREE.FullScreenQuad){const vs='varying vec2 vUv;void main(){vUv
   'float lobe=max(-.1875,min(max(lv.r,max(lv.g,lv.b)),0.))*sharp;',
   'gl_FragColor=vec4(clamp((lobe*(b+d+f+h)+e)/(4.*lobe+1.),0.,1.),1.);}'].join('\n')});
  const quad=new THREE.FullScreenQuad(m1),rt=new THREE.WebGLRenderTarget(4,4,{depthBuffer:false}),v=new THREE.Vector2();
- gxPass={enabled:true,needsSwap:false,clear:false,renderToScreen:true,setSize:function(){},dispose:function(){},
+ gxPass={gxMats:[m1,m2],enabled:true,needsSwap:false,clear:false,renderToScreen:true,setSize:function(){},dispose:function(){},
   render:function(r,wb,rb){r.getDrawingBufferSize(v);if(rt.width!==v.x||rt.height!==v.y)rt.setSize(v.x,v.y);
    m1.uniforms.tDiffuse.value=rb.texture;m1.uniforms.src.value.set(rb.width,rb.height);quad.material=m1;r.setRenderTarget(rt);quad.render(r);
    m2.uniforms.tDiffuse.value=rt.texture;m2.uniforms.px.value.set(1/v.x,1/v.y);m2.uniforms.sharp.value=gxSharp*4;quad.material=m2;r.setRenderTarget(null);quad.render(r)}};
@@ -6211,9 +6218,69 @@ function gxProxy(rl,u){u.gxProx=true;const bb=new THREE.Box3().setFromObject(rl)
 {const a1=gxApply;gxApply=function(q){const o=a1(q);try{const i=Math.max(1,Math.min(10,Math.round(q)))-1;if(typeof rlMaxCars!=='undefined'){rlMaxCars=[0,0,1,2,2,3,3,4,5,6][i];o.hdCars=rlMaxCars}if(typeof rlMaxPeople!=='undefined'){rlMaxPeople=[0,2,4,6,8,10,12,16,18,20][i];o.hdPeople=rlMaxPeople}gxLodPD=[35,40,45,50,55,60,60,65,70,75][i];gxLodCD=[50,55,60,70,75,80,85,90,100,110][i]}catch(e){}return o}}
 gxApply(gxQ);
 
+// ----- 5. startup: phones start Auto two steps lower (auto raises it back to the saved level when the frame rate allows) -----
+const gxPhone=(()=>{try{return (navigator.maxTouchPoints||0)>0&&Math.min(screen.width,screen.height)<600}catch(e){return false}})();
+try{if(gxPhone&&(typeof uiS==='undefined'||uiS.auto)&&gxQ>6)gxApply(6)}catch(e){}
+// ----- 6. shader warm-up: compile every program the scene needs in parallel before the first frame -----
+// three r147 compiles and links one program at a time and blocks on each (getUniforms right after linkProgram), so the first frame used to stall
+// ~2 s on a laptop. Here every material is compiled through a throw-away clone with three's uniform lookup stubbed out, which only issues
+// compile+link to the GPU; with KHR_parallel_shader_compile the driver links them on worker threads while the boot card stays up, and the
+// real materials then find the same (already linked) programs in three's program cache. A miss here only means a program compiles later as before.
+const gxGL=renderer.getContext(),gxPar=(()=>{try{return gxGL.getExtension('KHR_parallel_shader_compile')}catch(e){return null}})(),gxWarmStats={n:0,issue:0,wait:0,par:!!gxPar,batch:Math.round(gxTB),gfx:Math.round(performance.now()-gxT0),boot:Math.round(performance.now())};
+function gxIssue(only,rt,root,allDepth,near){root=root||scene;const progs=renderer.info.programs,push0=progs.push,fresh=[],dummy={seq:[],map:{}},ck=renderer.debug.checkShaderErrors,sw=[],inS=new Set();
+ if(only)only.traverse(o=>inS.add(o));
+ const one=x=>{const c=x.clone();c.onBeforeCompile=x.onBeforeCompile;c.customProgramCacheKey=x.customProgramCacheKey;return c};
+ const kind=o=>{const g=o.geometry,at=(g&&g.attributes)||{},ma=g&&g.morphAttributes;return (o.isInstancedMesh?'i'+(o.instanceColor?'c':''):'')+(o.isSkinnedMesh?'s':'')+(at.color?'c'+at.color.itemSize:'')+(at.tangent?'t':'')+(ma&&Object.keys(ma).length?'m'+Object.keys(ma).length:'')+(o.isPoints?'p':'')+(o.isLine?'l':'')+(o.isSprite?'S':'')};
+ // one compile pass: every object gets a clone of what f(o,m) returns (or nothing), duplicates by signature are skipped
+ // near (startup only): skip things whose bounds are more than near.r from the player; far districts compile when first seen, as before
+ const far=new Set(),v=new THREE.Vector3(),findFar=()=>{if(near)for(const q of sw){const o=q[0],g=o.geometry;if(o.isInstancedMesh||!g||!g.attributes||!g.attributes.position||q[1].fog===false)continue;   // unfogged things are landmarks seen from afar
+  if(!g.boundingSphere)g.computeBoundingSphere();const bs=g.boundingSphere;v.copy(bs.center).applyMatrix4(o.matrixWorld);if(Math.hypot(v.x-near.x,v.z-near.z)-bs.radius*o.matrixWorld.getMaxScaleOnAxis()>near.r)far.add(o)}};
+ const pass=f=>{const seen=new Set();for(const q of sw){const o=q[0],m=q[1];const r=((only&&!inS.has(o))||far.has(o))?null:f(o,m);if(!r||seen.has(r[0])){o.material=null;continue}seen.add(r[0]);o.material=r[1]}renderer.compile(root,cam)};
+ // programs that already exist get the stub too: a clone that finds one still linking must not wait for it here
+ const old=progs.slice();for(const p of old){p.gxU=p.getUniforms;p.getUniforms=function(){return dummy}}
+ renderer.debug.checkShaderErrors=false;progs.push=function(p){fresh.push(p);p.gxU=p.getUniforms;p.getUniforms=function(){return dummy};return push0.apply(this,arguments)};
+ const rt0=renderer.getRenderTarget();
+ try{root.traverse(o=>{if(o.material)sw.push([o,o.material])});findFar();renderer.setRenderTarget(rt);
+  pass((o,m)=>[(Array.isArray(m)?m.map(x=>x.uuid).join():m.uuid)+kind(o),Array.isArray(m)?m.map(one):one(m)]);
+  // the sun's shadow pass draws casters with three's shared depth material, set up per caster as WebGLShadowMap does (side flipped, alpha test map copied)
+  // (three draws the shadow pass without a scene, so no fog)
+  if(renderer.shadowMap.enabled&&sun.castShadow&&renderer.shadowMap.type!==THREE.VSMShadowMap){const fg=root.fog;root.fog=null;try{pass((o,m)=>{if(Array.isArray(m)||!(o.isMesh||o.isLine||o.isPoints)||!(o.castShadow||allDepth)||o.customDepthMaterial)return null;
+    const d=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}),side=m.shadowSide!==null&&m.shadowSide!==undefined?m.shadowSide:[1,0,2][m.side];
+    d.side=side;d.alphaMap=m.alphaMap||null;d.alphaTest=m.alphaTest||0;d.map=m.map||null;d.displacementMap=m.displacementMap||null;d.displacementScale=m.displacementScale===undefined?1:m.displacementScale;d.wireframe=!!m.wireframe;
+    return [kind(o)+side+(d.map?'M':'')+(d.alphaMap?'A':'')+(d.alphaTest>0?'T':'')+(d.displacementMap?'D':'')+(d.wireframe?'W':''),d]})}finally{root.fog=fg}}}
+ catch(e){console.log('gx warm',e)}
+ finally{renderer.setRenderTarget(rt0);for(const q of sw)q[0].material=q[1];delete progs.push;for(const p of old.concat(fresh)){p.getUniforms=p.gxU;delete p.gxU}renderer.debug.checkShaderErrors=ck}
+ return fresh}
+// post-processing materials draw full-screen quads outside the scene (no lights, no fog): compile them in an empty scene, into an offscreen target, and the last one to the screen
+function gxIssuePost(){const fresh=[];try{const ms=[],last=[],geo=new THREE.PlaneGeometry(2,2);
+  for(const p of composer.passes){if(p===gxPass){if(p.gxMats){ms.push(p.gxMats[0]);last.push(p.gxMats[1])}continue}
+   for(const k in p){const v=p[k],L=Array.isArray(v)?v:[v];for(const m of L)if(m&&m.isMaterial&&!m.isMeshBasicMaterial)(p.renderToScreen&&p.material===m?last:ms).push(m)}}
+  for(const [L,rt] of [[ms,composer.renderTarget1],[last,null]]){if(!L.length)continue;const s=new THREE.Scene();for(const m of L)s.add(new THREE.Mesh(geo,m));fresh.push(...gxIssue(null,rt,s))}}catch(e){console.log('gx warm post',e)}return fresh}
+function gxReady(fr,i){if(!gxPar)return fr.length;while(i<fr.length&&(!fr[i].program||gxGL.getProgramParameter(fr[i].program,0x91B1)))i++;return i}
+// warm an object that arrives later (downloaded models): issue its programs now, call back once they are linked (never more than a few seconds)
+function gxWarmObj(obj,done){let fr=[];try{const add=!obj.parent;if(add)scene.add(obj);fr=gxIssue(obj,composer.renderTarget1,null,true);if(add)scene.remove(obj);gxWarmStats.late=(gxWarmStats.late||0)+fr.length;if(gxWarmStats.set)for(const p of fr)gxWarmStats.set.add(p)}catch(e){}
+ if(!done)return;let i=0;const t0=performance.now();(function w(){i=gxReady(fr,i);if(i<fr.length&&performance.now()-t0<4000)setTimeout(w,50);else done()})()}
+function gxNear(){scene.updateMatrixWorld();return {x:pos.x,z:pos.z,r:Math.max(220,cam.far+40)}}
+function gxStart(f){const t0=performance.now();let fr=[];
+ if(location.hash.indexOf('gxnowarm')<0){
+  // the sky reflection map is made in the first frame (envTick); compile against a stand-in with the same PMREM layout (256 px cube: 768x1024 atlas),
+  // then render the real one while the driver links everything else
+  let fake=null;try{if(!scene.environment){fake=new THREE.Texture();fake.mapping=THREE.CubeUVReflectionMapping;fake.image={width:768,height:1024};scene.environment=fake}}catch(e){}
+  // the reflection scene's own materials (PMREM renders it untoned, into a linear target)
+  try{if(fake&&typeof envScene!=='undefined'){const tm=renderer.toneMapping;renderer.toneMapping=THREE.NoToneMapping;try{fr=fr.concat(gxIssue(null,composer.renderTarget1,envScene))}finally{renderer.toneMapping=tm}}}catch(e){}
+  fr=fr.concat(gxIssue(null,composer.renderTarget1,null,false,gxNear()),gxIssuePost());
+  gxWarmStats.issue=Math.round(performance.now()-t0);
+  // then render the sky reflection map while the driver links (uploading every texture or pre-drawing vertex buffers here were tried too: on a slow CPU they cost more than they saved)
+  // (sky colours first, as the first frame would set them, so the map matches what the frame would have made)
+  try{if(fake){scene.environment=null;const sa=dayT*Math.PI*2,sh=Math.sin(sa),day=Math.max(0,Math.min(1,sh*3+.5));skyU.top.value.setRGB(.05+.18*day,.07+.4*day,.18+.66*day);skyU.bot.value.setRGB(.1+.65*day+.2*(1-day)*Math.max(0,1-Math.abs(sh)*4),.12+.77*day,.25+.75*day);if(typeof envTick==='function')envTick(0)}}catch(e){}}
+ // programs fixes/mod.js started early that the scene still uses (the batched city replaced some of them) are waited for too
+ try{if(typeof fxEarly!=='undefined'){const used=fxEarly.filter(p=>p.usedTimes>1);gxWarmStats.early=fxEarly.length;gxWarmStats.earlyMs=Math.round(fxEarlyMs);gxWarmStats.earlyUsed=used.length;fr=used.concat(fr)}}catch(e){}
+ gxWarmStats.n=fr.length;gxWarmStats.set=new Set(fr);let i=0;
+ (function w(){i=gxReady(fr,i);if(i<fr.length&&performance.now()-t0<15000){requestAnimationFrame(w);return}gxWarmStats.wait=Math.round(performance.now()-t0);requestAnimationFrame(f)})()}
+
 // ---------- main loop ----------
 let last=performance.now(),T=0,mapTick=0;
-function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;T+=dt;
+function frame(now){requestAnimationFrame(frame);const dt=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;T+=dt;
  // day/night cycle (about 4 minutes per day)
  dayT=(dayT+dt/(60*(uiS.day||20)))%1;const sunA=dayT*Math.PI*2,sunH=Math.sin(sunA),day=Math.max(0,Math.min(1,sunH*3+0.5));
  sun.intensity=0.15+day*0.95;hemi.intensity=0.06+day*0.22;
@@ -6283,5 +6350,5 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-las
  sun.position.set(pos.x+Math.cos(sunA)*80,Math.max(10,sunH*120),pos.z+40);sun.target.position.copy(pos);gxSun();sky.position.copy(cam.position);stars.position.copy(cam.position);
  if((mapTick=(mapTick+1)%3)===0)drawMap();
  lfCam(dt);grade.uniforms.dmg.value=dmgFx;composer.render()}
-requestAnimationFrame(frame)}
+gxStart(frame)}
 </script></body></html>
