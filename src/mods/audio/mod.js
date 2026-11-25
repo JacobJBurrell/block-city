@@ -127,7 +127,7 @@ function auTick(dt){const show=driving&&state==='play'?'flex':'none';if(auBtn.st
    if(!auPrevG){auN('fx',.12,'lowpass',300,90,.8,.4);auO('fx','sine',110,50,.1,.3)}}else if(auPrevG&&vel.y>5)auN('fx',.16,'bandpass',500,1400,1,.1,now,.05);auPrevG=onGround}else auPrevG=true;
  // ambience
  const nightK=1-.35*Math.max(0,Math.min(1,-Math.sin(dayT*Math.PI*2)*3+.5));
- auAmb.cg.gain.setTargetAtTime((.15+.04*Math.sin(T*.31))*nightK*(driving?.6:1),now,.5);auAmb.rg.gain.setTargetAtTime(rain*.1,now,.5);auAmb.lg.gain.setTargetAtTime(rain*(driving?.13:.06),now,.5);
+ auAmb.cg.gain.setTargetAtTime((.15+.04*Math.sin(T*.31))*nightK*(driving?.6:1),now,.5);auAmb.rg.gain.setTargetAtTime(rain*.035,now,.5);auAmb.lg.gain.setTargetAtTime(rain*(driving?.045:.022),now,.5);
  auHornT-=dt;if(auHornT<=0){auHornT=9+Math.random()*16;const g=.012+Math.random()*.012;auO('amb','square',415,415,.38,g,now,.02);auO('amb','square',349,349,.38,g,now,.02);if(Math.random()<.4){auO('amb','square',415,415,.2,g,now+.5,.02);auO('amb','square',349,349,.2,g,now+.5,.02)}}
  // traffic passing close
  auWhoCD-=dt;for(const t of traffic){if(t.dead)continue;const d=Math.hypot(t.m.position.x-pos.x,t.m.position.z-pos.z);if(d<10){if(!t.auIn){t.auIn=true;if(auWhoCD<=0&&state==='play'){auWhoCD=.35;auN('fx',.8,'bandpass',950,330,1.1,.2,now,.22);auO('fx','sawtooth',95,62,.7,.05,now,.2)}}}else if(d>15)t.auIn=false}

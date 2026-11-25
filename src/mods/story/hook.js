@@ -21,3 +21,11 @@ window.__sph={s:()=>JSON.stringify({open:stPhOpen,app:stApp,locked:stLocked,view
 window.__sph.play=()=>{if(state!=='play'){state='play';try{$('msg').style.display='none'}catch(e){}}return state};
 window.__sph.st=()=>state;window.__sph.pos=()=>Math.round(pos.x*10)/10+','+Math.round(pos.z*10)/10;window.__sph.cash=n=>{if(n!==undefined)cash=n;return cash};
 window.__sph.btn=()=>{const q=stPhBtn.getBoundingClientRect();return [q.left+q.width/2,q.top+q.height/2,q.width]};
+window.__sph.cast=(id,out)=>JSON.stringify(stCastNode(id,!!out),(k,v)=>typeof v==='function'?'fn':v);
+window.__sph.rand=()=>stRandomCall();window.__sph.pick=i=>stCallPick(i);
+window.__sph.callS=()=>{const c=stCallO;return JSON.stringify(c?{id:c.id,st:c.st,line:c.line,k:c.k,wait:c.wait?c.wait.ch.map(x=>x[0]):null,n:c.node.s.length}:null)};
+window.__sph.lc=()=>[stC.lc,stC.lc2];window.__sph.co=id=>stC.co[id];window.__sph.phr=t=>JSON.stringify(stPhrases(t));
+window.__sph.vpick=id=>{const v=stVoice(id);return v?v.name:null};window.__sph.vlist=()=>JSON.stringify(stVoices.map(x=>[x.v.name,x.s,x.g]));
+window.__sph.cam=()=>JSON.stringify({cam:stCam,self:stCamSelf,pose:stPoses[stCamPose].n,n:stPhotos.length,state,clip:stCamClip,gal:stGalV});
+window.__sph.camOn=()=>stCamOn();window.__sph.camOff=()=>stCamOff();window.__sph.shot=()=>stShot();window.__sph.flip=()=>stCamFlip();window.__sph.pose=i=>stCamPoseSet(i);
+window.__sph.photo=i=>stPhotos[i]?stPhotos[i].u:null;window.__sph.apps=()=>stApps.map(a=>a.id);window.__sph.addApp=a=>stApps.push(a);window.__sph.openApp=id=>stOpenApp(id);window.__sph.isOpen=()=>stPhoneOpen();
