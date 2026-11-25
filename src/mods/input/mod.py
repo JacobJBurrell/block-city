@@ -1,5 +1,5 @@
 rep("THREE.ColorManagement.legacyMode=false;const $=id=>document.getElementById(id);","THREE.ColorManagement.legacyMode=false;const $=id=>document.getElementById(id);\n"+open(os.path.join(MODS,'input/adapter.js'),encoding='utf-8').read())
-rep("<style>html,body{margin:0;","<style>*{touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}html,body{margin:0;")
+rep("<style>html,body{margin:0;","<style>*{touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}html{overscroll-behavior:none}html,body{margin:0;")
 rep("<p><b>Tap anywhere to start</b></p>","<p style=\"opacity:.8\">Keyboard: WASD move, drag to look, click to shoot, Space jump, E car, F fire, Q weapon, M map</p><p><b>Tap anywhere to start</b></p>")
 rep("#toast{position:fixed;top:40%","@media (orientation:portrait){#stars,#bars{left:auto;right:150px;margin-left:0;width:118px}#stars{font-size:19px;letter-spacing:0}}\n#toast{position:fixed;top:40%")
 rep("// Block City v5:","// Block City v6 (controls now work with touch, mouse and keyboard, inside embeds too):")

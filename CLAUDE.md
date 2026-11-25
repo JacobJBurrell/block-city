@@ -27,7 +27,7 @@ That writes `index.html` (the page GitHub Pages serves), `Block City.js` (Script
 
 Rules for `mod.js` (it ends up inside a JavaScript template string):
 - No backticks, no `${`, no `</script>`. The build checks this.
-- Each module prefixes its globals: real `rl`, missions `ms`, audio `au`, vehicles `vh`, world `wd`, airport `ap`, land `ld`, isles `is`, crime `cp`, story `st`, life `lf`, jets `jt`, fixes `fx`, input `in`, map `mp`, ui `ui`, gfx `gx`.
+- Each module prefixes its globals: real `rl`, missions `ms`, audio `au`, vehicles `vh`, world `wd`, airport `ap`, land `ld`, isles `is`, crime `cp`, story `st`, account `ac`, life `lf`, jets `jt`, fixes `fx`, input `in`, map `mp`, ui `ui`, gfx `gx`.
 
 ## Modules
 
@@ -42,6 +42,7 @@ Rules for `mod.js` (it ends up inside a JavaScript template string):
 | land | North army base (tanks, jeeps), south hills with BLOCK CITY sign, marina, ferris wheel |
 | isles | City-themed islands east (Coral Key, Metro Isle, Lucky Sands, Hikari, Porto Luna, port, volcano), bridges, 18 car types |
 | crime | Police escalation (helicopters, SWAT, roadblocks), BUSTED/WASTED, robberies, furnished interiors, shop counters |
+| account | Email-code sign-in (Supabase), cloud save, admin flag; setup in docs/ACCOUNT_SETUP.md |
 | story | GTA-style phone, texting with replies, voice calls (speechSynthesis), properties, crew heists |
 | life | Pedestrian and traffic AI, witnesses, beat cops, cinematic intro |
 | jets | Fighter jets at the army base |
