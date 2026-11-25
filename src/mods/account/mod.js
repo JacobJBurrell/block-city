@@ -1,7 +1,7 @@
 // ---------- account: sign in with an emailed 6-digit code, cloud saves that follow the player (module prefix: ac) ----------
 // Backend: Supabase (Auth email OTP + one table "profiles" protected by Row Level Security). Setup: docs/ACCOUNT_SETUP.md.
 // Only the project URL and the anon (publishable) key go here; both are meant to be public. Never put any other key in this file.
-const acCfg={url:'',anon:''};
+const acCfg={url:'https://sudgpszinjrjkyttogqb.supabase.co',anon:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1ZGdwc3ppbmpyamt5dHRvZ3FiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU1ODI1NjEsImV4cCI6MjExMTE1ODU2MX0.soHLXH4ddKwjMOX89QdFDLpyqkvthdKzZ-En-Imnya4'};
 const acBIG=999999999,acSKEY='bcacct_session',acMKEY='bcacct_meta',acBKEY='bcacct_backup',acPFX='blockcity_',acLIB='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 const acDevKeys=['q','auto','rot','lh','fps','hint'];   // settings that belong to one device (screen and layout); they are not copied between devices
 let acLibP=null,acCl=null,acInitP=null,acUser=null,acAdmin=false,acReal=0,acOpen=false,acView='email',acMsg='',acMsgBad=false,acBusy=false,acEmail='',acCodeV='',acSendAt=0,acSends=[],acTries=0,acConf=null,acSt='off',acPushT=0,acLastPush=-1e9,acRetry=0,acRetryT=0,acDelC=0,acPushing=false,acAgain=false,acKeepUntil=0,acFrozen=false,acGot=false,acNoPersist=false,acCloudT=0,acSyncing=false,acMetaT=0;
@@ -51,7 +51,7 @@ function acLib(){if(acLibP)return acLibP;acLibP=new Promise((res,rej)=>{if(windo
  acLibP.catch(()=>{acLibP=null});return acLibP}
 function acFetch(u,o){o=o||{};if(Date.now()<acKeepUntil&&(!o.body||String(o.body).length<60000))o=Object.assign({},o,{keepalive:true});return fetch(u,o)}
 function acInit(){if(acInitP)return acInitP;if(!acOK())return Promise.reject(new Error('not set up'));
- acInitP=acLib().then(lib=>{acCl=lib.createClient(acCfg.url,acCfg.anon,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:acSKEY,storage:acStore},global:{fetch:acFetch}});return acCl.auth.getSession()})
+ acInitP=acLib().then(lib=>{acCl=lib.createClient(acCfg.url,acCfg.anon,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:acSKEY,storage:acStore},global:{fetch:acFetch}});return acCl.auth.getSession()})
   .then(r=>{const s=r&&r.data&&r.data.session;acUser=s&&s.user?s.user:null;if(acUser)acSync(false);return acCl});
  acInitP.catch(()=>{acInitP=null;acCl=null});return acInitP}
 function acSetSt(s){acSt=s;acChipSync();if(acOpen&&(acView==='profile'||acView==='conflict'))acRender()}
@@ -96,8 +96,8 @@ function acSend(){if(acBusy)return;const el=document.getElementById('acEm');if(e
  if(!/^[^@ ]+@[^@ ]+[.][^@ ]+$/.test(acEmail)||acEmail.length>200){acSay('Type your email address first.',true);return}
  if(now-acSendAt<60000){acSay('Please wait '+Math.ceil((60000-(now-acSendAt))/1000)+' seconds before asking for another code.',true);return}
  acSends=acSends.filter(t=>now-t<900000);if(acSends.length>=4){acSay('Too many codes requested. Try again in a few minutes.',true);return}
- acBusy=true;acSay('Sending your code...');
- acInit().then(cl=>cl.auth.signInWithOtp({email:acEmail,options:{shouldCreateUser:true}})).then(r=>{acBusy=false;if(r&&r.error)throw r.error;acSendAt=Date.now();acSends.push(acSendAt);try{localStorage.setItem('bcacct_sent',JSON.stringify(acSends))}catch(x){}acTries=0;acCodeV='';acView='code';acSay('');acFocus('acCode')})
+ acBusy=true;acSay('Sending your sign-in email...');
+ acInit().then(cl=>cl.auth.signInWithOtp({email:acEmail,options:{shouldCreateUser:true,emailRedirectTo:acBack()}})).then(r=>{acBusy=false;if(r&&r.error)throw r.error;acSendAt=Date.now();acSends.push(acSendAt);try{localStorage.setItem('bcacct_sent',JSON.stringify(acSends))}catch(x){}acTries=0;acCodeV='';acView='code';acSay('');acFocus('acCode')})
   .catch(e=>{acBusy=false;acSay(acPlain(e),true)})}
 function acVerify(){if(acBusy)return;const el=document.getElementById('acCode');if(el)acCodeV=el.value.replace(/[^0-9]/g,'');
  if(acCodeV.length!==6){acSay('Type the 6 numbers from the email.',true);return}if(acTries>=8){acSay('Too many tries. Send a new code.',true);return}
@@ -158,10 +158,10 @@ function acRender(){const em=document.getElementById('acEm'),cd=document.getElem
    +'<div class="ac-kv"><span>Last saved to account</span><em class="w">'+acAgo(acCloudT)+'</em></div><div class="ac-kv"><span>Sync</span><em class="'+col+'" id="acSync">'+st+'</em></div></div>'
    +'<div class="ac-row"><div class="ac-b" data-ac="sync">Save now</div><div class="ac-b" data-ac="out">Sign out</div></div><div class="ac-b ac-warn" data-ac="del">'+(acDelC?'Tap again to delete for good':'Delete my account data')+'</div>'+msg+(acNoPersist||!acLS?acStoreNote():'')}
  else if(acView==='code'){const left=Math.max(0,Math.ceil((60000-(Date.now()-acSendAt))/1000));
-  h+='<div class="ac-p">Type the 6-digit code we sent to <b>'+acMask(acEmail)+'</b>. It can take a minute. Check spam too.</div><input class="ac-in ac-code" id="acCode" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="6" placeholder="000000" enterkeyhint="done">'
+  h+='<div class="ac-p">We emailed <b>'+acMask(acEmail)+'</b>. Tap <b>Sign in</b> in that email to open the game signed in, or type the 6-digit code if the email shows one. It can take a minute. Check spam too.</div><input class="ac-in ac-code" id="acCode" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="6" placeholder="000000" enterkeyhint="done">'
    +'<div class="ac-b ac-go" data-ac="verify">Sign in</div><div class="ac-row"><div class="ac-b'+(left?' ac-dim':'')+'" data-ac="resend" id="acRe">'+(left?'Send again ('+left+')':'Send again')+'</div><div class="ac-b" data-ac="back">Other email</div></div>'+msg}
- else h+='<div class="ac-p">Sign in to keep your game on every device. We email you a <b>6-digit code</b>. No password.</div><input class="ac-in" id="acEm" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="200" placeholder="Email address" enterkeyhint="send">'
-   +'<div class="ac-b ac-go" data-ac="send">Send code</div>'+msg+acStoreNote();
+ else h+='<div class="ac-p">Sign in to keep your game on every device. We email you a sign-in link. No password.</div><input class="ac-in" id="acEm" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="200" placeholder="Email address" enterkeyhint="send">'
+   +'<div class="ac-b ac-go" data-ac="send">Email me a sign-in link</div>'+msg+acStoreNote();
  acRoot.innerHTML=h+'</div>';const e2=document.getElementById('acEm'),c2=document.getElementById('acCode');if(e2)e2.value=acEmail;if(c2)c2.value=acCodeV;if(foc==='acEm'&&e2)e2.focus();if(foc==='acCode'&&c2)c2.focus()}
 function acOpenPanel(){if(acOpen)return;acOpen=true;acMsg='';acMsgBad=false;acDelC=0;acRoot.style.display='flex';acRoot.scrollTop=0;
  if(acOK()){if(acConf)acView='conflict';else if(acUser)acView='profile';else if(acView!=='code')acView='email';
@@ -192,5 +192,10 @@ function acInject(){const t=document.getElementById('uiTitle');if(t&&!document.g
  acChipSync()}
 setInterval(acInject,400);
 // ----- start: only load anything if this device already holds a sign-in -----
-function acBoot(){if(!acOK()||acCl||acInitP)return;let has=false;try{has=acStore.getItem(acSKEY)!==null}catch(e){}if(has)acInit().catch(()=>{})}
+function acBack(){const h=location.origin+location.pathname;return /^https:/.test(h)?h:'https://jacobjburrell.github.io/block-city/'}
+// emailed sign-in link: the game opens with #access_token=... (or #error=...); supabase-js reads it, then we show the account panel
+function acLinkIn(){const h=location.hash||'';if(!/access_token=|error_description=/.test(h))return false;const bad=/error_description=([^&]*)/.exec(h);
+ if(bad){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}acView='email';acOpenPanel();acSay(/expired|invalid/i.test(decodeURIComponent(bad[1]))?'That sign-in link has expired. Send a new one.':'That sign-in link did not work. Send a new one.',true);return true}
+ acInit().then(()=>{try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}if(acUser){acView='profile';acGot=false;acOpenPanel();acSync(true)}}).catch(e=>{acOpenPanel();acSay(acPlain(e),true)});return true}
+function acBoot(){if(!acOK()||acCl||acInitP)return;if(acLinkIn())return;let has=false;try{has=acStore.getItem(acSKEY)!==null}catch(e){}if(has)acInit().catch(()=>{})}
 setTimeout(acBoot,2500);

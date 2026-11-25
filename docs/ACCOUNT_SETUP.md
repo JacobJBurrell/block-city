@@ -176,6 +176,8 @@ Thinking it through as an attacker who has the public anon key and their own val
 
 ## Step 4: make the email contain the 6-digit code
 
+> **Current status (set up 2026-11-25):** the Supabase dashboard only lets you edit email templates after custom SMTP is set up (Step 6). Until then Supabase sends its default email, which has a **Sign in** link and no code. The game handles that: tapping the link opens the game already signed in (it reads the sign-in from the page address). The 6-digit code box starts working once the templates below are saved.
+
 By default Supabase emails a link. The game needs the code instead.
 
 1. **Authentication** -> **Emails** (or **Email Templates**).
