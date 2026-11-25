@@ -80,7 +80,7 @@ function vhMaxPts(c){if(c.vhMaxP)return c.vhMaxP;const u=c.m.userData;let p=1000
  c.vhMaxP=p;return p}
 function vhHit(c,pts,kind){if(!vhManaged(c)||pts<=0)return;const mx=vhMaxPts(c);c.hp=(c.hp===undefined?100:c.hp)-pts/mx*100;vhDamaged.add(c);
  if(c.hp<=0&&kind==='boom'){c.hp=.1;if(c.vhFire===undefined||c.vhFire>.6){if(c.vhFire===undefined)vhBurning.push(c);c.vhFire=.6}return}
- c.hp=Math.max(.1,c.hp);if(c.hp<5&&c.vhFire===undefined){c.vhFire=6;vhBurning.push(c);if(c===driving){toast('ON FIRE! GET OUT!');beep(300,.3,.2)}}}
+ c.hp=Math.max(kind==='crash'?8:.1,c.hp);if(c.hp<5&&c.vhFire===undefined){c.vhFire=6;vhBurning.push(c);if(c===driving){toast('ON FIRE! GET OUT!');beep(300,.3,.2)}}}
 // legacy entry used by other modules (old scale: n percent of a 100-point car)
 function vhDamage(n){if(driving)vhHit(driving,n*10,'legacy')}
 const vhHurtPrev=hurt;hurt=function(n){const c=driving;
@@ -92,7 +92,7 @@ const vhHurtPrev=hurt;hurt=function(n){const c=driving;
 function vhEngPos(c){return c.m.localToWorld((c.vhEng||new THREE.Vector3(0,1.05,-1.6)).clone())}
 function vhDmgTick(dt){const c=driving;
  // impacts: speed change within one frame (wall, traffic, police rams); cosmetic below ~8 units/s
- if(c&&!c.vhT&&vhManaged(c)&&state==='play'){const dv=Math.abs(c.speed-vhLastV);if(dv>8&&c===vhCur)vhHit(c,.18*(dv*dv-64),'crash');vhLastV=c.speed;
+ if(c&&!c.vhT&&vhManaged(c)&&state==='play'){const dv=Math.abs(c.speed-vhLastV);if(dv>8&&c===vhCur)vhHit(c,.06*(dv*dv-64),'crash');vhLastV=c.speed;
   const pct=c.hp===undefined?100:c.hp;if(pct<30){const mx=(c.m.userData.max||38)*(.4+.6*pct/30);c.speed=Math.max(-mx*.5,Math.min(mx,c.speed));if(pct<15&&Math.random()<dt*1.5){c.speed*=.85;sfx(.12,300,.25)}}}
  else vhLastV=c?c.speed:0;
  if(c&&c.vhFire!==undefined&&c.hp>=20){delete c.vhFire;const i=vhBurning.indexOf(c);if(i>=0)vhBurning.splice(i,1)}
