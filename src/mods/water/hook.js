@@ -1,0 +1,8 @@
+window.__wt={st:()=>({swim:wtSwim,x:+pos.x.toFixed(2),y:+pos.y.toFixed(2),z:+pos.z.toFixed(2),surf:+wtSurf.toFixed(3),dep:+wtDepthAt(pos.x,pos.z).toFixed(2),d:+wtShoreD(pos.x,pos.z).toFixed(1),ready:wtReady,breath:+wtBreath.toFixed(2),dive:+wtDive.toFixed(2),low:wtLow,uw:wtUW,og:onGround,drv:driving?(driving.vhT||'car'):null,prone:+wtProne.toFixed(2),hp:Math.round(hp),state,vis:wtMesh.visible,old:[typeof wdWater!=='undefined'&&wdWater.visible,typeof wdFoam!=='undefined'&&wdFoam.visible]}),
+ h:(x,z)=>wtHeight(x,z,T),d:(x,z)=>wtShoreD(x,z),sea:(x,z)=>wtSea(x,z),
+ tp:(x,y,z)=>{if(driving){driving.speed=0;driving=null;player.visible=true}pos.set(x,y,z);vel.set(0,0,0);onGround=false;wtPrevOK=false},
+ view:(x,y,z,yaw,pit)=>{if(driving){driving.speed=0;driving=null;player.visible=true}pos.set(x,y,z);vel.set(0,0,0);camYaw=yaw;camPitch=pit;wtPrevOK=false},
+ time:t=>{dayT=t;envT=0},rain:v=>{rainTarget=v;rain=v;weatherT=9999},joy:(x,y)=>{joy.x=x;joy.y=y},jump:()=>{jumpQ=true},car:()=>{carQ=true},
+ boat:(i,x,z,ry)=>{const b=vhBoats[i||0];if(x!==undefined){b.m.position.x=x;b.m.position.z=z;if(ry!==undefined)b.m.rotation.y=ry}return [b.m.position.x,b.m.position.y,b.m.position.z]},
+ drive:i=>{driving=vhBoats[i||0];player.visible=false;return driving.vhT},boats:()=>vhBoats.map(b=>[+b.m.position.x.toFixed(1),+b.m.position.y.toFixed(3),+b.m.position.z.toFixed(1)]),
+ places:()=>({HALF,pz:typeof wdPZ!=='undefined'?wdPZ:0,px2:typeof wdPX2!=='undefined'?wdPX2:0,dy:typeof wdDY!=='undefined'?wdDY:0,rx:typeof isRX!=='undefined'?isRX:0,rz:typeof isRZ!=='undefined'?isRZ:0,ra:typeof isRA!=='undefined'?isRA:0,rb:typeof isRB!=='undefined'?isRB:0,islet:typeof isIslets!=='undefined'?isIslets[0]:null,r4:roadCenter(4)})};

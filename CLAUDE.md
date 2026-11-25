@@ -27,7 +27,7 @@ That writes `index.html` (the page GitHub Pages serves), `Block City.js` (Script
 
 Rules for `mod.js` (it ends up inside a JavaScript template string):
 - No backticks, no `${`, no `</script>`. The build checks this.
-- Each module prefixes its globals: real `rl`, missions `ms`, audio `au`, vehicles `vh`, world `wd`, airport `ap`, land `ld`, isles `is`, crime `cp`, story `st`, account `ac`, life `lf`, jets `jt`, fixes `fx`, input `in`, map `mp`, ui `ui`, gfx `gx`.
+- Each module prefixes its globals: real `rl`, missions `ms`, audio `au`, vehicles `vh`, world `wd`, airport `ap`, land `ld`, isles `is`, crime `cp`, story `st`, music `mu`, account `ac`, water `wt`, life `lf`, jets `jt`, fixes `fx`, input `in`, map `mp`, ui `ui`, gfx `gx`.
 
 ## Modules
 
@@ -43,6 +43,8 @@ Rules for `mod.js` (it ends up inside a JavaScript template string):
 | isles | City-themed islands east (Coral Key, Metro Isle, Lucky Sands, Hikari, Porto Luna, port, volcano), bridges, 18 car types |
 | crime | Police escalation (helicopters, SWAT, roadblocks), BUSTED/WASTED, robberies, furnished interiors, shop counters |
 | account | Email-code sign-in (Supabase), cloud save, admin flag; setup in docs/ACCOUNT_SETUP.md |
+| music | YouTube radio stations and phone Music app (official IFrame player, hidden when the phone is closed); search key in muCfg |
+| water | Sea shader, shore foam, swimming and diving, wtHeight(x,z,t) |
 | story | GTA-style phone, texting with replies, voice calls (speechSynthesis), properties, crew heists |
 | life | Pedestrian and traffic AI, witnesses, beat cops, cinematic intro |
 | jets | Fighter jets at the army base |

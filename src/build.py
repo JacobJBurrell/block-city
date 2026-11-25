@@ -15,7 +15,7 @@ ROOT = os.path.dirname(HERE)
 
 # Order matters: later modules wrap functions defined by earlier ones.
 ORDER = ['real', 'missions', 'audio', 'vehicles', 'world', 'airport', 'land', 'isles',
-         'crime', 'story', 'account', 'life', 'jets', 'fixes', 'input', 'map', 'ui', 'gfx']
+         'crime', 'story', 'music', 'account', 'life', 'jets', 'water', 'fixes', 'input', 'map', 'ui', 'gfx']
 
 s = open(os.path.join(HERE, 'base.js'), encoding='utf-8').read()
 

@@ -85,6 +85,15 @@ function msEnd(pass,bonus,why){const t=msType;msClean();msType=-1;msPinned=true;
  if(pass){msStreak++;const mult=Math.min(2.5,1+.15*(msStreak-1)),total=Math.round((msReward+(bonus||0))*mult);cash+=total;msPassed++;if(msStreak>msBest)msBest=msStreak;msBanner('MISSION PASSED','+$'+total+(mult>1?'   streak x'+mult.toFixed(2):''),true);msJingle(true);msSave()}
  else{msStreak=0;msBanner('MISSION FAILED',why||'',false);msJingle(false)}
  if(t===4&&pass&&driving)carQ=true}
+// the fare is a person like any other (life module): killing them fails the job and the body stays where it fell;
+// gunfire from the taxi during the ride terrifies the passenger, who bails out after a few bursts
+function msFareDead(g){if(msData.pass!==g)return;msData.pass=null;if(msType===1)msEnd(false,0,'Your passenger is dead')}
+let msFareT=-9;
+function msFareShot(){if(msType!==1||msStage!==1||!driving||T-msFareT<1.6)return;msFareT=T;msData.crash=(msData.crash||0)+1;msData.shots=(msData.shots||0)+1;
+ try{if(typeof auVoice==='function')auVoice('scream',pos,Math.random()<.5)}catch(e){}
+ if(msData.shots>=4){const m=driving.m,y=m.rotation.y,p=makePerson(new THREE.Color().setHSL(Math.random(),.7,.55),new THREE.Color().setHSL(Math.random(),.4,.3),[0xf1c27d,0xc68642,0x8d5524,0xe0ac69][Math.floor(Math.random()*4)]);
+  p.position.set(m.position.x+Math.cos(y)*2.3,.3,m.position.z-Math.sin(y)*2.3);collide(p.position,.45);scene.add(p);const d=new THREE.Vector3(Math.cos(y),0,-Math.sin(y));fleers.push({g:p,d,t:9,w:0});driving.speed*=.3;
+  msEnd(false,0,'Your passenger bailed out')}}
 function msVehKill(c){if(msType===5&&msStage===1){msData.k++;beep(1100,.08,.1)}}
 const msBlowCar0=blowCar,msBlowParked0=blowParked,msBlowPolice0=blowPolice;
 blowCar=function(t){const w=t.dead;msBlowCar0(t);if(!w&&t.dead)msVehKill(t)};
@@ -124,7 +133,7 @@ MODS.push(function msFrame(dt){
  if(msBanT>0){msBanT-=dt;if(msBanT<=0)msBan.style.opacity=0}
  msSaveT-=dt;if(msSaveT<=0){msSaveT=10;if(state!=='ready')msSave()}
  for(const s of msShops){s.ringM.rotation.z+=dt*1.2;s.ringM.position.y=.5+Math.sin(T*2.5+s.x)*.15;s.tube.material.opacity=.16+.1*Math.sin(T*3+s.z)}
- if(msData.pass){const p=msData.pass,u=p.userData;u.armR.rotation.x=-2.6+Math.sin(T*6)*.3;p.rotation.y=Math.atan2(-(pos.x-p.position.x),-(pos.z-p.position.z))}
+ if(msData.pass&&!(msData.pass.userData.lfF&&msData.pass.userData.lfF.st)){const p=msData.pass,u=p.userData;u.armR.rotation.x=-2.6+Math.sin(T*6)*.3;p.rotation.y=Math.atan2(-(pos.x-p.position.x),-(pos.z-p.position.z))}
  if(msData.cone)msData.cone.rotation.y+=dt*3;
  for(let i=msLoose.length-1;i>=0;i--){const s=msLoose[i];if(s.dead){s.kind='msx';msLoose.splice(i,1)}else if(s.gone)msLoose.splice(i,1);else if(s.g.position.distanceTo(pos)>90){s.gone=true;msLoose.splice(i,1)}}
  if(state==='dead'){if(!msWasDead){msWasDead=true;if(msMenuOpen)msCloseMenu();if(msType>=0&&msStage>=1)msEnd(false,0,'You got wiped out')}}

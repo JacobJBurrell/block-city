@@ -1,6 +1,8 @@
 // ---------- audio module (au*) ----------
 let auOn=false,auMute=0,auMaster=null,auOut=null,auBus={},auEng=null,auAmb=null,auScr=null,auSir=null,auStepD=0,auPrevW=0,auWhoCD=0,auPrevDrv=null,auPrevG=true,auHornT=12,auRG=null,auDist=null;
 const auR={st:0,step:0,next:0};
+// auExt: set by the music module while YouTube owns the radio; the synthesized stations below then stay silent (they remain the offline fallback)
+let auExt=0;
 function auLoop(){const s=AC.createBufferSource();s.buffer=NB;s.loop=true;s.start(0,Math.random()*.9);return s}
 function auInit(){if(auOn||!AC||!NB)return;auOn=true;
  const comp=AC.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=12;comp.attack.value=.003;comp.release.value=.2;
@@ -106,7 +108,7 @@ function auRStep(S,si,i,t0){const st=i%16,bar=(i>>4)%4,sd=60/S.bpm/4,t=t0+(st%2?
   if(st===0||st===6||st===10)auRNote(R,'sine',auF(S,ch,-1),t,sd*3,.26,400,.01);
   if(m!==null){auRNote(R,'sine',auF(S,m,2),t,sd*3.2,.075,3000,.015);auRNote(R,'triangle',auF(S,m,2),t,sd*2,.03,1600,.015,9)}
   if(Math.random()<.4)auN(R,.012,'highpass',4000,4000,.7,.035,t+Math.random()*sd)}}
-function auRadioTick(){const on=driving&&state==='play'&&auR.st<4,now=AC.currentTime;auRG.gain.setTargetAtTime(on?1:0,now,.15);if(!on){auR.next=0;return}
+function auRadioTick(){const on=driving&&state==='play'&&auR.st<4&&!auExt,now=AC.currentTime;auRG.gain.setTargetAtTime(on?1:0,now,.15);if(!on){auR.next=0;return}
  const S=auST[auR.st],sd=60/S.bpm/4;if(auR.next<now){auR.next=now+.06}let n=0;while(auR.next<now+.32&&n++<12){auRStep(S,auR.st,auR.step,auR.next);auR.next+=sd;auR.step=(auR.step+1)%64}}
 function auRadioNext(){auR.st=(auR.st+1)%5;auR.step=0;auR.next=0;const on=auR.st<4;toast(on?'♪ '+auST[auR.st].n:'Radio off');auBtn.textContent=on?auST[auR.st].b:'OFF';auBtn.style.opacity=on?1:.55}
 const auBtn=document.createElement('div');auBtn.id='radio';auBtn.textContent=auST[0].b;

@@ -148,7 +148,7 @@ function cpShell(K,R,o){const X=K.X,H=K.H,g=R.grp;
   for(const mx of[1.0,3.2])K.b(.1,2.95,.14,sx*mx,1.47,6.92,0x2b2f36);K.b(2.2,.45,.16,sx*2.1,.22,6.92,0xcfc8ba);K.b(2.3,.06,.3,sx*2.1,.47,6.82,0x9a9a9a);K.b(2.2,.08,.12,sx*2.1,2.92,6.93,0x2b2f36)}
  K.e(.72,.24,.06,0,3.3,6.9,0x3dff7a);K.b(1.7,.02,1.1,0,.01,6.05,0x2a2a2a);
  R.door=cpAddDoor(X-.8,6.9,0)}
-function cpPerson(R,lx,lz,ry,sh,pa,rt){const g=makePerson(sh,pa,[0xf1c27d,0xc68642,0x8d5524,0xe0ac69][Math.random()*4|0]);g.userData.rlType=rt;g.position.set(R.x+lx,.3,lz);g.rotation.y=ry;scene.add(g);g.visible=R.grp.visible;R.ppl.push(g);return g}
+function cpPerson(R,lx,lz,ry,sh,pa,rt){const g=makePerson(sh,pa,[0xf1c27d,0xc68642,0x8d5524,0xe0ac69][Math.random()*4|0]);g.userData.rlType=rt;g.userData.cpR=R;g.position.set(R.x+lx,.3,lz);g.rotation.y=ry;scene.add(g);g.visible=R.grp.visible;R.ppl.push(g);return g}
 function cpWalker(R,pts,sh,pa,rt){const g=cpPerson(R,pts[0][0],pts[0][1],0,sh,pa,rt);R.walk.push({g,pts,i:1,w:0,pause:Math.random()*2});return g}
 const cpT={
  store(K,R){cpShell(K,R,{f:'tile',fs:2.4,w:'plaster',wc:0xe6dcc4,c:'acoustic',stripe:0x2a9d8f});K.panels([[-5,-1],[0,-1],[5,-1],[-5,3.6],[0,3.6],[5,3.6],[0,-5.2]],2.4,.6);
@@ -433,11 +433,11 @@ function cpCounter(pl,R){const k=R.ctr.k,h=cpCounterH[k];if(h){try{h(pl,R)}catch
   try{rr(s,c)}finally{sun.intensity=si;hemi.intensity=hi;hemi.color.copy(hc);hemi.groundColor.copy(hg);beam.visible=bv;ring.visible=rv;arrow.visible=av;if(mb)mb.visible=mb.cpV}}}
 // ---- inside: robbery, counters, ambient life ----
 function cpInTick(dt){const pl=cpIn,R=pl.room,D=pl.D||{};evade=0;cpScrM.uniforms.uT.value=T;
- for(const w of R.walk){if(w.stop)continue;const g=w.g;if(w.pause>0){w.pause-=dt;continue}const p=w.pts[w.i],tx=R.x+p[0],tz=p[1],dx=tx-g.position.x,dz=tz-g.position.z,d=Math.hypot(dx,dz);if(d<.15){w.i=(w.i+1)%w.pts.length;w.pause=1+Math.random()*2.5;continue}g.position.x+=dx/d*1.1*dt;g.position.z+=dz/d*1.1*dt;g.rotation.y=Math.atan2(-dx,-dz);w.w+=dt*6;animLimbs(g,1.1,w.w)}
+ for(const w of R.walk){if(w.stop||w.g.userData.dead)continue;const g=w.g;if(w.pause>0){w.pause-=dt;continue}const p=w.pts[w.i],tx=R.x+p[0],tz=p[1],dx=tx-g.position.x,dz=tz-g.position.z,d=Math.hypot(dx,dz);if(d<.15){w.i=(w.i+1)%w.pts.length;w.pause=1+Math.random()*2.5;continue}g.position.x+=dx/d*1.1*dt;g.position.z+=dz/d*1.1*dt;g.rotation.y=Math.atan2(-dx,-dz);w.w+=dt*6;animLimbs(g,1.1,w.w)}
  if(R.ctr&&state==='play'){const d=Math.hypot(pos.x-R.ctr.x,pos.z-R.ctr.z);if(d<1.7){if(!R.ctrIn){R.ctrIn=true;cpCounter(pl,R)}}else if(d>2.6)R.ctrIn=false}
- if(R.ball)R.ball.rotation.y+=dt*.8;
+ cpAlarmTick(pl,R,dt);if(R.ball)R.ball.rotation.y+=dt*.8;
  if(pl.type==='club'){cpBeat-=dt;if(cpBeat<=0){cpBeat=.46;sfx(.12,120,.5);cpLight.color.setHSL(Math.random(),1,.6);if(R.dance){const C=new THREE.Color();for(let i=0;i<16;i++)R.dance.setColorAt(i,C.setHSL(Math.random(),1,.55));R.dance.instanceColor.needsUpdate=true}}
-  (R.dancers||[]).forEach((g,i)=>{const u=g.userData,s=Math.sin(T*6.8+i);g.position.y=.3+Math.abs(s)*.22;g.rotation.y+=dt*(i%2?1.2:-1);u.armL.rotation.x=-2+s;u.armR.rotation.x=-2-s;u.legL.rotation.x=s*.4;u.legR.rotation.x=-s*.4});return}
+  (R.dancers||[]).forEach((g,i)=>{const u=g.userData,s=Math.sin(T*6.8+i);if(u.dead||u.cpRe)return;g.position.y=.3+Math.abs(s)*.22;g.rotation.y+=dt*(i%2?1.2:-1);u.armL.rotation.x=-2+s;u.armR.rotation.x=-2-s;u.legL.rotation.x=s*.4;u.legR.rotation.x=-s*.4});return}
  if(!D.pay||!R.clerk||state!=='play')return;cpRobTick(pl,R,D,dt)}
 // ===== robbery: shown, not told. The clerk raises both hands, empties the till and pushes bundles of cash across the counter; customers crouch or run =====
 const cpRobCfg={store:{tx:-1.6,cz:-4.5,top:1.06,fz:-3.32},jewel:{tx:0,cz:-4.6,top:1.46,fz:-3.28},bank:{tx:0,cz:-4.15,top:1.21,fz:-2.86}},
@@ -455,14 +455,34 @@ function cpArm(g,k,w,k0){const u=g.userData,a=u.av;if(a&&a.B&&typeof rlPoint==='
 function cpHand(g,out){const a=g.userData.av;if(a&&a.B&&a.B.R_Hand){a.B.R_Hand.getWorldPosition(out);return out}g.getWorldQuaternion(cpPQ);cpPF.set(0,0,-1).applyQuaternion(cpPQ);return out.copy(g.position).addScaledVector(cpPF,.5).setY(1.4)}
 function cpFace(g,x,z,dt,k){const ty=Math.atan2(-(x-g.position.x),-(z-g.position.z));let d=ty-g.rotation.y;d=((d+Math.PI*3)%(Math.PI*2))-Math.PI;g.rotation.y+=d*Math.min(1,dt*(k||8))}
 function cpRobReset(R){if(!R)return;cpSG.visible=cpSGF.visible=false;if(R.robFx){for(const b of R.robFx)R.grp.remove(b.m);R.robFx.length=0}
- for(const g of R.ppl){const u=g.userData;if(!u.cpHome)u.cpHome=[g.position.x,g.position.z,g.rotation.y];else{g.position.set(u.cpHome[0],.3,u.cpHome[1]);g.rotation.y=u.cpHome[2]}
+ R.shotSeen=cpShotAt;R.alarmCall=0;for(const g of R.ppl){const u=g.userData,f=u.lfF;if(f&&f.dead){if(T-f.deadT<150)continue;f.dead=false;u.dead=false;try{rlRevive(g)}catch(e){}}if(f){f.hp=1;f.hot=false}if(u.gun)u.gun.visible=false;u.rlAimT=0;
+  if(!u.cpHome)u.cpHome=[g.position.x,g.position.z,g.rotation.y];else{g.position.set(u.cpHome[0],.3,u.cpHome[1]);g.rotation.y=u.cpHome[2]}
   u.cpRe=null;u.cpNerv=0;g.rotation.x=0;try{rlPlay(g,null)}catch(e){}if(u.armL){u.armL.rotation.set(0,0,0);u.armR.rotation.set(0,0,0)}}
  for(const w of R.walk)w.stop=false}
 {const g0=cpGo;cpGo=function(pl,f){g0(pl,f);try{cpRobReset(pl.room)}catch(e){console.log('cp rob reset',e)}}}
 // customers: some freeze and crouch, some bolt for the door
-function cpPanic(R,c){let k=0;for(const g of R.ppl){if(g===c||g.userData.cpRe)continue;const w=R.walk.find(q=>q.g===g);if(w)w.stop=true;
-  const run=w?(k++%2===0):Math.random()<.2;g.userData.cpRe={k:run?'run':'cower',t:Math.random()*.5}}}
-function cpPanicTick(R,dt){for(const g of R.ppl){const e=g.userData.cpRe;if(!e)continue;if(e.t>0){e.t-=dt;continue}
+function cpRole(pl,R,g){const u=g.userData;if(u.cpRole)return u.cpRole;const h=u.cpHome||[g.position.x,g.position.z];let r='cust';
+ if(u.rlType==='cop')r='cop';else if(pl.type==='gun'||(pl.type==='club'&&g===R.npc[1]))r='guard';else if(g===R.clerk)r='clerk';else if(h[1]<-4.4)r='staff';return u.cpRole=r}
+function cpScream(g){try{if(typeof auVoice==='function')auVoice(Math.random()<.6?'scream':'whimper',g.position,typeof lfFem==='function'&&lfFem(g))}catch(e){}}
+function cpPanic(R,c){const pl=cpIn||{type:R.type};let k=0,v=0;R.alarm=T;for(const g of R.ppl){const u=g.userData;if(g===c||u.cpRe||u.dead||!g.visible)continue;const w=R.walk.find(q=>q.g===g);if(w)w.stop=true;const role=cpRole(pl,R,g);
+  let kind;if(role==='cop'||role==='guard'){kind='fire';if(u.lfF){u.lfF.hp=Math.max(u.lfF.hp,4);u.lfF.hot=true}}else if(role==='staff'||role==='clerk')kind='duck';else kind=(w?(k++%2===0):Math.random()<.25)?'run':'cower';
+  u.cpRe={k:kind,t:Math.random()*.45,cd:.8+Math.random()*.8};if(kind!=='fire'&&v++<3)cpScream(g)}}
+// gunfire (or a gun pointed at someone) anywhere indoors: everyone in the room reacts, somebody calls it in
+function cpAlarmTick(pl,R,dt){const pay=!!(pl.D&&pl.D.pay);
+ if(cpShotAt>(R.shotSeen===undefined?cpShotAt:R.shotSeen)){R.shotSeen=cpShotAt;cpPanic(R,pay&&R.clerk&&!R.clerk.userData.dead&&!(cpRob&&cpRob.done)&&Math.hypot(pos.x-R.clerk.position.x,pos.z-R.clerk.position.z)<11?R.clerk:null);if(pl.type==='police')cpStars(3);else if(!pay&&!R.alarmCall)R.alarmCall=T+3.5}
+ if(R.shotSeen===undefined)R.shotSeen=cpShotAt;if(R.alarmCall&&T>R.alarmCall){R.alarmCall=0;cpStars(1)}
+ cpPanicTick(R,dt)}
+// hooks used by the life module's everyone-is-mortal code
+function cpAimAt(g){if(cpIn&&g.userData.cpR===cpIn.room)cpShotAt=T}
+// the first shot in a robbable place is the hold-up itself: nobody is hit while the robbery is only starting (shots into the ceiling)
+function cpFolkHit(g){const pl=cpIn;if(!pl||!pl.D||!pl.D.pay)return false;const R=pl.room,c=R.clerk;if(!c||c.userData.dead||Math.hypot(pos.x-c.position.x,pos.z-c.position.z)>=11)return false;return !cpRob||T-cpRob.start<.6}
+function cpFolkDown(g){const pl=cpIn;if(!pl)return;const R=pl.room,u=g.userData,w=R.walk.find(q=>q.g===g);if(w)w.stop=true;u.cpRe={k:'dead',t:0};g.position.y=.3;u.rlAimT=0;if(u.gun)u.gun.visible=false;
+ if(g===R.clerk&&cpRob){const r=cpRob;if(!r.done&&!r.down){cpStars(Math.min(5,((pl.D&&pl.D.stars)||1)+1));r.pt=0}r.down=true;cpSG.visible=cpSGF.visible=false}
+ else cpStars(u.rlType==='cop'?4:2);
+ cpShotAt=T}
+function cpPanicTick(R,dt){for(const g of R.ppl){const u=g.userData,e=u.cpRe;if(!e||u.dead||e.k==='dead')continue;if(e.t>0){e.t-=dt;continue}
+  if(e.k==='duck'){if(!e.on){e.on=true;try{rlPlay(g,'Cower',{fade:.2})}catch(x){}}g.position.y+=(-.3-g.position.y)*Math.min(1,dt*7);if(!u.av)cpArm(g,'cower',1);continue}
+  if(e.k==='fire'){cpFace(g,pos.x,pos.z,dt,7);u.rlAimT=T+.3;if(u.gun)u.gun.visible=true;if(!u.av&&u.armR)u.armR.rotation.x=Math.PI/2;e.cd-=dt;if(e.cd<=0&&state==='play'){e.cd=1.2+Math.random()*.9;enemyShoot({g,kind:'cop'})}continue}
   if(e.k==='run'){if(!e.wp){const sx=g.position.x<R.x?-.3:.3;e.wp=[[g.position.x,5.6],[R.x+sx,5.6],[R.x+sx,6.7]]}const q=e.wp[0],tx=q[0],tz=q[1],dx=tx-g.position.x,dz=tz-g.position.z,d=Math.hypot(dx,dz);if(d<.3){e.wp.shift();if(!e.wp.length){g.visible=false;e.k='gone'}continue}
    const sp=4.6;g.position.x+=dx/d*sp*dt;g.position.z+=dz/d*sp*dt;g.rotation.y=Math.atan2(-dx,-dz);if(!g.userData.av&&g.userData.legL)animLimbs(g,sp,T*14)}
   else if(e.k==='cower'){if(!e.on){e.on=true;try{rlPlay(g,'Cower',{fade:.25})}catch(x){}}cpFace(g,pos.x,pos.z,dt,3);if(!g.userData.av)cpArm(g,'up',1)}}}
@@ -474,23 +494,23 @@ const cpSGV=new THREE.Vector3(),cpSGT=new THREE.Vector3(),cpRobDur={reach:.8,giv
 function cpRobAdd(R,C,c,st){const k=R.robFx.length,m=new THREE.Mesh(cpBundG,cpBundM),band=new THREE.Mesh(cpBandG,cpBandM);m.add(band);m.rotation.y=cpR(-.4,.4);
  const tp=new THREE.Vector3(R.x+C.tx+((k%3)-1)*.34+cpR(-.04,.04),.3+C.top+.04+(Math.floor(k/3)%4)*.125,C.fz-Math.floor(k/12)*.17);R.grp.add(m);const b={m,p0:new THREE.Vector3(),tp,e:0,st};
  if(st==='slide')b.p0.set(R.x+C.tx,.3+C.top-.3,C.fz-.6);else cpHand(c,b.p0);m.position.copy(b.p0);R.robFx.push(b);beep(990,.12,.04);return b}
-function cpRobTick(pl,R,D,dt){const c=R.clerk,u=c.userData,C=cpRobCfg[pl.type]||cpRobCfg.store;cpPanicTick(R,dt);
+function cpRobTick(pl,R,D,dt){const c=R.clerk,u=c.userData,C=cpRobCfg[pl.type]||cpRobCfg.store;if(u.dead&&!cpRob)return;
  if(!cpRob){const near=Math.hypot(pos.x-c.position.x,pos.z-c.position.z)<11;if(near&&(fireId!==null||T-cpShotAt<.4)){
    cpRob={t:0,dur:D.dur,pay:Math.round(cpR(D.pay[0],D.pay[1])/10)*10,armed:Math.random()<.25,cd:1.6,down:false,start:T,ph:'up',pt:0,k0:null,n:0,walk:0,cur:null};cpStars(D.stars);
    if(!cpSave.robHint){cpSave.robHint=1;cpStore()}cpPanic(R,c);sfx(.25,300,.3);if(!R.robFx)R.robFx=[]}return}
  const r=cpRob;
  // the till is empty: the bundles on the counter fly into the player's bag, the clerk crouches behind the counter
  if(r.done){for(let i=R.robFx.length-1;i>=0;i--){const b=R.robFx[i];if(!b.fly)continue;b.fly+=dt*2.4;const e=Math.min(1,b.fly);cpHV.set(pos.x,pos.y+1.2,pos.z);b.m.position.lerpVectors(b.p0,cpHV,e*e);b.m.position.y+=Math.sin(e*Math.PI)*.5;if(e>=1){R.grp.remove(b.m);R.robFx.splice(i,1)}}
-  if(!r.down){cpFace(c,pos.x,pos.z,dt,3);if(!r.cow){r.cow=1;try{rlPlay(c,'Cower',{fade:.3})}catch(e){}}if(!u.av)cpArm(c,'cower',1)}return}
+  if(!r.down&&!u.dead){cpFace(c,pos.x,pos.z,dt,3);if(!r.cow){r.cow=1;try{rlPlay(c,'Cower',{fade:.3})}catch(e){}}if(!u.av)cpArm(c,'cower',1)}return}
  // the clerk steps over to the till
  if(r.walk<1&&!r.down){r.walk=Math.min(1,r.walk+dt*1.6);c.position.x+=(R.x+C.tx-c.position.x)*Math.min(1,dt*6);c.position.z+=(C.cz-c.position.z)*Math.min(1,dt*6)}
- if(r.armed&&!r.down){cpFace(c,pos.x,pos.z,dt);u.rlAimT=T+.3;if(u.armR&&!u.av){u.armR.rotation.x=Math.PI/2;u.armL.rotation.x=1.2}r.cd-=dt;
+ if(r.armed&&!r.down){if(u.lfF){u.lfF.hot=true;if(!r.tough){r.tough=1;u.lfF.hp=2.5}}cpFace(c,pos.x,pos.z,dt);u.rlAimT=T+.3;if(u.armR&&!u.av){u.armR.rotation.x=Math.PI/2;u.armL.rotation.x=1.2}r.cd-=dt;
   if(u.av&&u.av.gun)u.av.gun.visible=false;if(cpSG.parent!==R.grp)R.grp.add(cpSG);cpSG.visible=true;cpHand(c,cpSG.position);cpSG.lookAt(cpSGT.set(pos.x,pos.y+1.3,pos.z));
   if(!r.pump){r.pump=1;sfx(.08,260,.25);setTimeout(()=>sfx(.08,200,.25),140)}
   if(cpSGF.visible&&T>r.fl)cpSGF.visible=false;
   if(r.cd<=0){r.cd=1.9;cpSGF.visible=true;r.fl=T+.06;cpSG.localToWorld(cpSGV.set(0,.02,.8));tracer(cpSGV,cpSGT.set(pos.x,1.5,pos.z));burst(cpSGV,6,0xffcc66,3,.18,.18,.5);
    try{if(typeof auGun==='function'&&AC){auInit();auGun('SHOTGUN',1)}else sfx(.4,1100,.8)}catch(e){sfx(.4,1100,.8)}hurt(15)}
-  if(cpShotAt>r.start+.6){r.down=true;u.rlAimT=0;c.rotation.x=-Math.PI/2;cpSG.visible=cpSGF.visible=false;cpStars(Math.min(5,D.stars+1));r.pt=0}return}
+  if(!u.lfF&&cpShotAt>r.start+.6){r.down=true;u.rlAimT=0;c.rotation.x=-Math.PI/2;cpSG.visible=cpSGF.visible=false;cpStars(Math.min(5,D.stars+1));r.pt=0}return}
  if(cpSG.visible)cpSG.visible=cpSGF.visible=false;
  r.t+=dt*(r.down?1.4:1);r.pt+=dt;
  if(!r.down){const ph=r.ph,dur=ph==='up'?(r.n?.45:1.0):cpRobDur[ph];let w=Math.min(1,r.pt/.28);w=w*w*(3-2*w);

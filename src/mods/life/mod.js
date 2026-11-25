@@ -35,10 +35,10 @@ function lfTake(p,st,data,urgent){const u=p.userData;if(u.dead)return false;if(!
 function lfDrop(p,b){const u=p.userData,q=u.path;lfClipOff(p);lfGst(p,null);if(u.gun)u.gun.visible=false;if(!b)b=lfBlock(p.position.x,p.position.z);const m=lfPerim(p.position.x,p.position.z,b);q.cx=b[0];q.cz=b[1];q.t=m.t;if(q.spd>1.6)q.spd=.8+Math.random()*.5;u.lfOn=false;u.lf=null;const i=lfSmart.indexOf(p);if(i>=0)lfSmart.splice(i,1)}
 // GTA-style reactions by personality: a few fight back (fists, or a pistol), some call the cops, some cower, most run screaming
 const lfBusy=s=>s==='flee'||s==='fight'||s==='cower'||s==='call'||s==='gun'||s==='angry'||s==='mugged'||s==='hands';
-function lfReact(p,P,d,kind){const u=p.userData,pr=lfPers(p),near=!driving&&state==='play';
+function lfReact(p,P,d,kind){const u=p.userData,npc=kind==='npc';if(npc)kind='boom';const pr=lfPers(p),near=!driving&&state==='play';
  if(pr==='fight'&&near&&d<16&&kind!=='boom'){if(lfTake(p,'angry',{dur:.9},true)){lfClip(p,'Angry',{dur:1.2});lfFace(p,pos.x,pos.z);lfSay(p,lfPick('fight'))}return}
  if(pr==='gun'&&near&&d<26&&kind!=='boom'){if(lfTake(p,'gun',{cd:.8+Math.random()*.6,dur:11+Math.random()*5},true)){u.lfArmed=1;lfSay(p,lfPick('fight'))}return}
- if(pr==='call'&&d>9&&wanted<2){if(lfTake(p,'call',{dur:4.5,own:1,sx:P.x,sz:P.z},true)){lfClip(p,'Phone');lfSay(p,lfPick('call'))}return}
+ if(pr==='call'&&d>9&&wanted<2&&!npc){if(lfTake(p,'call',{dur:4.5,own:1,sx:P.x,sz:P.z},true)){lfClip(p,'Phone');lfSay(p,lfPick('call'))}return}
  if((pr==='cower'||d<7)&&kind!=='aim'&&d<15){if(lfTake(p,'cower',{dur:4+Math.random()*4},true)){lfClip(p,'Cower');lfGst(p,'scared',3);lfSay(p,lfPick('cower'))}return}
  if(kind==='aim'){if(lfTake(p,'hands',{dur:3.5+Math.random()*2},true)){lfGst(p,'hands',3.5);lfClip(p,'Nervous');if(Math.random()<.5)lfVoice(p,'whimper')}return}
  if(lfTake(p,'flee',{sx:P.x,sz:P.z,dur:5+Math.random()*4},true)&&Math.random()<.45)lfSay(p,lfPick('flee'))}
@@ -108,8 +108,8 @@ function lfPedTick(dt){const px=pos.x,pz=pos.z,onFoot=!driving&&state==='play';
 // no text: you see the witness on the phone, hear the dial tone, and the wanted stars appear when the call goes through
 function lfCallTick(dt){const c=lfCaller;if(!c)return;if(c.g.userData.dead||!c.g.userData.lfOn){lfCaller=null;return}c.t-=dt;if(c.t<=0){lfCaller=null;wantedScore+=c.n}}
 // --- reactions to what the player does
-{const s0=shoot;shoot=function(){s0();if(state==='play')lfThreat(pos,34,'shot')}}
-{const e0=explode;explode=function(p){e0(p);try{if(Math.hypot(p.x-pos.x,p.z-pos.z)<110){lfThreat(p,38,'boom');lfWatch(p,5)}}catch(e){}}}
+{const s0=shoot;shoot=function(){s0();if(state==='play'){lfThreat(pos,34,'shot');try{lfShot(pos,true,36)}catch(e){if(lfErr++<3)console.log('life shot',e&&e.stack||e)}}}}
+{const e0=explode;explode=function(p){e0(p);try{if(Math.hypot(p.x-pos.x,p.z-pos.z)<110){lfThreat(p,38,'boom');lfWatch(p,5)}}catch(e){}lfBoom(p)}}
 {const k0=killPed;killPed=function(q,from){const was=q.userData.dead;k0(q,from);try{if(!was&&q.userData.dead&&Math.hypot(q.position.x-pos.x,q.position.z-pos.z)<70){lfWatch(q.position,2);if(!lfDown&&!lfAmb)lfDown={g:q,t:5}}}catch(e){}}}
 {const f0=flee;flee=function(p){const n=fleers.length;f0(p);const f=fleers[fleers.length-1];if(f&&fleers.length>n&&Math.random()<.4){f.lfAngry=4.5;lfSay(f.g,lfPick('car'),2.2)}}}
 // --- gangs warn first on their own turf
@@ -216,11 +216,179 @@ function lfCam(dt){
  if(Math.abs(cam.fov-lfFovNow)>.6){lfFovNow=cam.fov;return}// someone else is driving the field of view right now
  const nf=lfFovNow+(want-lfFovNow)*Math.min(1,dt*2.5);if(Math.abs(nf-cam.fov)>.02){cam.fov=nf;cam.updateProjectionMatrix()}lfFovNow=cam.fov}
 {const r0=respawn;respawn=function(){r0();try{if(state==='play'&&lfIntroDone)lfIntroStart(true)}catch(e){}}}
+// ---------- everyone is mortal: every person in the game (not only street walkers and gunmen) can be shot, blown up or run over, and reacts to gunfire ----------
+// lfFolk = every makePerson() body that is not a street ped, a shooter or the player: shop staff and customers indoors, island residents, beat cops, the mugger,
+// taxi fares, the heist crew, medics, carjacked drivers, mechanics and anything other modules add later. Drivers of NPC cars are handled per car (lfDrv*).
+// Nothing here scans per frame: a shot is an event (lfShot) followed by one radius query; only people who are reacting are ticked.
+const lfFolk=[],lfFAct=[],lfFNear=[],lfBodies=[],lfWrecks=[];
+let lfFSlowT=0,lfFNearT=0,lfShotT=-9,lfNpcShotT=-9,lfDrvPick=false,lfAimT=0,lfAimO=null,lfDrvN=0;
+function lfFReg(g){const u=g.userData;if(u.lfF||u.path||g===player)return;u.lfF={hp:1,dead:false,st:'',t:0,dur:0,k:'',gone:0,hot:false,deadT:0};lfFolk.push(g)}
+{const mp0=makePerson;makePerson=function(a,b,c){const g=mp0(a,b,c);try{lfFReg(g)}catch(e){}return g};
+ const ms0=makeShooter;makeShooter=function(k,x,z){const s=ms0(k,x,z);if(s&&s.g)s.g.userData.lfSh=s;return s};
+ try{if(typeof rlPeople!=='undefined')for(const g of rlPeople)lfFReg(g)}catch(e){}for(const s of shooters)s.g.userData.lfSh=s}
+function lfFOk(g){const u=g.userData,f=u.lfF;return !!f&&!f.dead&&g.visible&&!!g.parent&&!u.rlSeat&&!u.rlMe&&!u.lfSh&&!u.path}
+function lfFKind(g){const u=g.userData,f=u.lfF;if(f.k)return f.k;let k='static';
+ try{if(u.cpR)k='in';else if(lfCops.some(c=>c.g===g))k='beat';else if(cpMug&&cpMug.g===g)k='mug';else if(msData&&msData.pass===g)k='fare';
+  else if(stH&&stH.crew&&stH.crew.some(m=>m.g===g))k='crew';else if(lfAmb&&lfAmb.med===g)k='medic';else if(fleers.some(q=>q.g===g))k='fleer';
+  else if(typeof isPeds!=='undefined'){const e=isPeds.find(p=>p.g===g);if(e){k='isle';f.isE=e}}}catch(e){}
+ return f.k=k}
+// --- reactions of everyone who is not a street ped (those keep the lfReact state machine above)
+function lfFStop(g){const u=g.userData,f=u.lfF;if(!f)return;const was=f.st;f.st='';f.hot=false;lfClipOff(g);lfGst(g,null);u.rlAimT=0;if(u.lfArmed){u.lfArmed=0;if(u.gun)u.gun.visible=false}
+ if(f.isE&&f.sp0!==undefined){f.isE.sp=f.sp0;f.sp0=undefined}if(was&&u.armL&&!f.dead){u.armL.rotation.x=u.armR.rotation.x=0}}
+function lfFSet(g,st,P,dur){const u=g.userData,f=u.lfF;if(f.st)lfFStop(g);f.st=st;f.t=0;f.dur=dur||(5+Math.random()*4);f.sx=P.x;f.sz=P.z;f.cd=.8+Math.random()*.6;f.called=0;if(lfFAct.indexOf(g)<0)lfFAct.push(g);
+ const e=f.isE,hold=()=>{if(e&&f.sp0===undefined){f.sp0=e.sp;e.sp=0}};
+ if(st==='cower'){hold();lfClip(g,'Cower');lfGst(g,'scared',3);lfVoice(g,Math.random()<.5?'scream':'whimper')}
+ else if(st==='hands'){hold();lfGst(g,'hands',3.5);lfClip(g,'Nervous');if(Math.random()<.6)lfVoice(g,'whimper')}
+ else if(st==='flee'){if(e&&f.sp0===undefined){f.sp0=e.sp;e.sp=5.6}lfVoice(g,'scream')}
+ else if(st==='call'){hold();lfClip(g,'Phone');if(typeof auDial==='function')try{auDial(g.position)}catch(x){}}
+ else if(st==='gun'){hold();u.lfArmed=1;f.hot=true;f.hp=Math.max(f.hp,2.5);f.dur=10+Math.random()*5;if(u.gun)u.gun.visible=true;lfVoice(g,'shout')}
+ else if(st==='angry'){hold();lfClip(g,'Angry',{dur:f.dur});lfVoice(g,'shout')}
+ else if(st==='flinch'){f.dur=.7;u.rlHitT=T+.3;lfGst(g,'stagger',.6);if(Math.random()<.5)lfVoice(g,'shout')}}
+function lfFolkScare(g,P,why,byPlayer){const u=g.userData,f=u.lfF;if(!f||f.dead)return;const k=lfFKind(g);
+ if(k==='in'||k==='beat'||k==='mug')return;// indoors the crime module runs the room; beat cops draw; the mugger is already running
+ if(f.st&&f.st!=='hands')return;
+ if(k==='crew'){lfFSet(g,'flinch',P);return}
+ if(k==='fleer'){f.st='flee';f.t=0;f.dur=4;if(lfFAct.indexOf(g)<0)lfFAct.push(g);lfVoice(g,'scream');return}
+ const pr=lfPers(g),d=Math.hypot(g.position.x-pos.x,g.position.z-pos.z),near=byPlayer&&!driving&&state==='play';let st='cower';
+ if(why==='aim')st=pr==='gun'?'gun':(pr==='fight'?'angry':'hands');
+ else if(pr==='gun'&&near&&d<28)st='gun';else if(pr==='fight'&&near&&d<16)st='angry';else if(pr==='call'&&byPlayer&&wanted<2&&d>7)st='call';else if(pr==='flee'&&k==='isle')st='flee';
+ lfFSet(g,st,P)}
+function lfFolkHear(P,R,byPlayer){for(const g of lfFolk){if(!lfFOk(g))continue;const p=g.position,dx=p.x-P.x,dz=p.z-P.z;if(dx*dx+dz*dz>R*R)continue;const f=g.userData.lfF;if(f.st&&f.st!=='hands')continue;lfFolkScare(g,P,'shot',byPlayer)}}
+function lfFolkTick(dt){const px=pos.x,pz=pos.z;for(let i=lfFAct.length-1;i>=0;i--){const g=lfFAct[i],u=g.userData,f=u.lfF;
+  if(!f||f.dead||!f.st||!g.parent){if(f&&!f.dead)lfFStop(g);lfFAct.splice(i,1);continue}f.t+=dt;const st=f.st,dp=Math.hypot(g.position.x-px,g.position.z-pz);
+  if(st==='cower'){u.armL.rotation.x=u.armR.rotation.x=2.5;if(f.t%2.6<dt)lfGst(g,'scared',2.8)}
+  else if(st==='hands'){u.armL.rotation.x=u.armR.rotation.x=Math.PI;lfFace(g,px,pz);if(f.t%3<dt)lfGst(g,'hands',3.2);if(lockObj===g)f.dur=Math.max(f.dur,f.t+1.5)}
+  else if(st==='call'){u.armR.rotation.x=2.2;lfFace(g,g.position.x*2-f.sx,g.position.z*2-f.sz);if(f.t>4.2&&!f.called){f.called=1;if(wanted===0&&state==='play')wantedScore=Math.max(wantedScore,1.05)}}
+  else if(st==='gun'){lfFace(g,px,pz);u.rlAimT=T+.4;u.armR.rotation.x=Math.PI/2;if(u.gun)u.gun.visible=true;f.cd-=dt;if(f.cd<=0&&dp<32&&f.t>.7&&state==='play'){f.cd=1+Math.random()*.8;enemyShoot({g,kind:'gang'})}if(dp>48)f.dur=0}
+  else if(st==='angry'){lfFace(g,px,pz);u.armL.rotation.x=u.armR.rotation.x=.6}
+  else if(st==='flee'){if(f.t%2.4<dt&&Math.random()<.35)lfVoice(g,'scream')}
+  if(f.t>f.dur){lfFStop(g);lfFAct.splice(i,1)}}}
+// --- damage and death
+function lfCopHot(c){const i=lfCops.indexOf(c);if(i<0)return null;const g=c.g,s=makeShooter('cop',g.position.x,g.position.z);s.aggro=true;s.g.rotation.y=g.rotation.y;if(g.userData.rlVar)s.g.userData.rlVar=g.userData.rlVar;scene.remove(g);lfCops.splice(i,1);return s}
+function lfFolkHit(g,dmg,from,kind,spd){const u=g.userData,f=u.lfF;if(!f||f.dead)return false;const k=lfFKind(g);kind=kind||'shot';
+ if(k==='beat'){const c=lfCops.find(q=>q.g===g),s=c&&lfCopHot(c);if(!s)return false;if(lockObj===g)lockObj=s;s.hp-=dmg;s.g.userData.rlHitT=T+.3;if(kind!=='shot'||s.hp<=0)killShooter(s,from);else{crime(.5);wantedScore=Math.max(wantedScore,1.05)}return true}
+ if(k==='in'&&kind==='shot'){let veto=false;try{veto=cpFolkHit(g)}catch(e){}if(veto)return false}
+ u.rlHitT=T+.3;burst(new THREE.Vector3(g.position.x,g.position.y+1.3,g.position.z),4,0xffffff,3,.15,.2);try{if(kind==='shot'&&typeof auN==='function'&&auOn)auN('fx',.07,'lowpass',520,180,.7,.32)}catch(e){}
+ if(k==='crew'){let m=null;try{m=stH.crew.find(q=>q.g===g)}catch(e){}if(!m||m.down)return false;m.hp-=kind==='shot'?dmg*30:999;lfVoice(g,'shout');
+  if(m.hp>0){lfFSet(g,'flinch',from);return true}m.hp=0;m.down=true;try{stH.lost+=Math.round(stH.take*.12)}catch(e){}}
+ else{f.hp-=dmg;if(f.hp>0&&kind==='shot'){lfVoice(g,'scream');if(!f.st||f.st==='hands')lfFolkScare(g,from,'hit',true);return true}}
+ lfFolkKill(g,from,kind,spd);return true}
+function lfFolkKill(g,from,kind,spd){const u=g.userData,f=u.lfF;if(!f||f.dead)return;const k=lfFKind(g);lfFStop(g);f.dead=true;f.deadT=T;u.dead=true;const i=lfFAct.indexOf(g);if(i>=0)lfFAct.splice(i,1);
+ if(lockObj===g)lockObj=null;burst(new THREE.Vector3(g.position.x,g.position.y+1.4,g.position.z),10,0xffffff,4,.25,.4);kills++;
+ if(k==='mug'){try{if(cpMug&&cpMug.g===g&&!cpMug.done)cpMugEnd(true)}catch(e){}}
+ g.rotation.x=0;if(typeof rlKill==='function')rlKill(g,from,kind||'shot',spd||0);else g.rotation.x=-Math.PI/2;
+ if(k==='mug')return;// stopping the mugger is not a crime
+ if(k==='fare'){try{msFareDead(g)}catch(e){}}
+ else if(k==='in'){try{cpFolkDown(g)}catch(e){}}
+ else if(k==='fleer'){const j=fleers.findIndex(q=>q.g===g);if(j>=0)fleers.splice(j,1)}
+ else if(k==='medic'){if(lfAmb&&lfAmb.med===g){lfAmb.med=null;lfAmb.ph=4;lfAmb.t=0}}
+ crime(k==='crew'?.5:1);
+ try{if(k!=='in'){if(typeof cpDrop==='function'&&g.position.y<1&&Math.random()<.7)cpDrop(g.position,10+Math.random()*50);
+   if(Math.hypot(g.position.x-pos.x,g.position.z-pos.z)<70){lfWatch(g.position,2);if(!lfDown&&!lfAmb&&Math.abs(g.position.x)<HALF&&Math.abs(g.position.z)<HALF)lfDown={g,t:5}}}}catch(e){}}
+// --- lock-on, tap-to-shoot and free aim all pick from allTargets(): add everyone, and the driver of a car when you tap the driver
+function lfDrvHas(e){return !!e&&!e.dead&&!e.gone&&!e.lfNoDrv&&e!==driving&&!!e.m&&!!e.m.parent}
+function lfDrvHead(m,out){let S=null;try{if(typeof rlDrvSeat==='function')S=rlDrvSeat(m)}catch(e){}if(S)out.set(S.x,S.y+1.5*S.s[1],S.z);else out.set(-.4,1.2,.34);return m.localToWorld(out)}
+function lfDrvTargets(o){const add=e=>{if(!lfDrvHas(e))return;const p=e.m.position,dx=p.x-pos.x,dz=p.z-pos.z;if(dx*dx+dz*dz>3600)return;o.push({kind:'drv',obj:e.lfTok||(e.lfTok={lfDrvOf:e}),p:lfDrvHead(e.m,new THREE.Vector3())})};
+ for(const t of traffic)add(t);for(const pc of police)if(!pc.deployed)add(pc);for(const c of cars)if(c.isLoop)add(c)}
+{const at1=allTargets;allTargets=function(){const o=at1();
+  for(const g of lfFolk){if(!lfFOk(g))continue;const p=g.position,dx=p.x-pos.x,dz=p.z-pos.z;if(dx*dx+dz*dz>8100)continue;o.push({kind:'folk',obj:g,p:new THREE.Vector3(p.x,p.y+1.3,p.z),hostile:g.userData.lfF.hot})}
+  if(lfDrvPick||(lockObj&&lockObj.lfDrvOf))try{lfDrvTargets(o)}catch(e){}
+  return o}}
+{const ts1=tapShoot;tapShoot=function(x,y){lfDrvPick=true;try{ts1(x,y)}finally{lfDrvPick=false}}}
+{const dm1=damage;damage=function(t,dmg){
+  if(t&&t.kind==='folk'){lfFolkHit(t.obj,dmg,pos,'shot');return}
+  if(t&&t.kind==='drv'){lfDrvShot(t.obj.lfDrvOf,pos);return}
+  dm1(t,dmg);
+  // bullets that hit an occupied car sometimes find the driver
+  if(t&&t.obj&&(t.kind==='car'||t.kind==='pol'||(t.kind==='parked'&&t.obj.isLoop))&&lfDrvHas(t.obj)&&!(t.obj.hp<=0)&&Math.random()<Math.min(.5,dmg*.13))lfDrvShot(t.obj,pos)}}
+// --- drivers of NPC cars
+function lfDrvLook(m){let c=0x3a4250,ty=null,vr=null;try{if(typeof rlDrv!=='undefined')for(const d of rlDrv)if(d.car===m){c=d.g.children[0].children[0].material.color.getHex();ty=d.g.userData.rlType;vr=d.g.userData.rlVar;rlDrvOff(d)}}catch(e){}return {c,ty,vr}}
+// the car leaves the traffic system the same way a carjacked one does: it becomes an ordinary drivable car and a fresh one joins the traffic at the edge of town
+function lfDrvFree(e,k){const m=e.m;let c=null;const ti=traffic.indexOf(e),pi=ti<0?police.indexOf(e):-1;
+ if(ti>=0){c={m,speed:(e.lfStop?0:(e.spd||0))*k,steer:0,hp:e.hp>0?e.hp:100};cars.push(c);const nm=e.lfCop?makePoliceCar():makeCar(carColors[Math.floor(Math.random()*carColors.length)]);scene.add(nm);e.m=nm;e.pos=e.dir>0?-HALF-20:HALF+20;e.hp=100;
+  if(e.lfSpd0){e.spd=e.lfSpd0;e.lfSpd0=0}e.lfScared=false;e.lfStop=false;e.lfTok=null;e.lfHeard=0;e.lfSw=0;placeTraffic(e)}
+ else if(pi>=0){police.splice(pi,1);c={m,speed:(e.speed||0)*k,steer:0,hp:e.hp>0?e.hp:150};cars.push(c);try{m.userData.red.color.setRGB(.25,0,0);m.userData.blue.color.setRGB(0,0,.25)}catch(x){}}
+ else if(e.isLoop){c=e;c.speed=((e.isLoop.lp&&e.isLoop.lp.sp)||8)*k;e.isLoop=null;e.lfTok=null}
+ if(c){c.lfWreck={t:0,sw:(Math.random()-.5)*1.7,done:false,body:null,br:k<1?.12:.45};lfWrecks.push(c)}return c}
+function lfDrvShot(e,from){if(!lfDrvHas(e))return false;const m=e.m,cop=!!e.lfCop||police.indexOf(e)>=0,lk=lfDrvLook(m),c=lfDrvFree(e,1);if(!c)return false;lfDrvN++;
+ if(lockObj&&lockObj.lfDrvOf===e)lockObj=null;lfCorpseSeat(c,lk);kills++;crime(cop?3:1);
+ try{burst(lfDrvHead(m,new THREE.Vector3()),8,0xffffff,3,.2,.3);if(Math.hypot(m.position.x-pos.x,m.position.z-pos.z)<60){beep(415,1.5,.06);lfWatch(m.position,2)}}catch(x){}return true}
+function lfCorpseSeat(c,lk){const m=c.m;while(lfBodies.length>=5)lfBodyGone(lfBodies[0]);
+ const g=makePerson(lk.c,0x23262e,[0xf1c27d,0xc68642,0x8d5524,0xe0ac69][Math.floor(Math.random()*4)]),u=g.userData;u.rlSeat='car';u.rlNpc=1;u.rlKeep=true;u.lfSit=1;u.lfF.dead=true;u.lfF.deadT=T;u.lfF.k='body';if(lk.ty){u.rlType=lk.ty;u.rlVar=lk.vr}
+ g.traverse(o=>{if(o.isMesh)o.castShadow=false});u.legL.rotation.x=u.legR.rotation.x=1.45;u.armL.rotation.x=u.armR.rotation.x=.5;
+ try{const ch=g.children[0].children[0],ob=ch.onBeforeRender;ch.onBeforeRender=function(){ob.apply(this,arguments);if(u.lfSit&&u.kneeL)u.kneeL.rotation.x=u.kneeR.rotation.x=-1.5}}catch(e){}
+ let S={x:-.4,y:-.58,z:.34,s:[1,1,1]};try{if(typeof rlDrvSeat==='function')S=rlDrvSeat(m)}catch(e){}
+ g.position.set(S.x,S.y,S.z);g.scale.set(S.s[0],S.s[1],S.s[2]);g.rotation.set(-.3,0,-.24);m.add(g);try{rlDrvGlass(m,true);rlT=0}catch(e){}c.lfWreck.body=g;lfBodies.push({g,c,t:T})}
+function lfBodyGone(b){const i=lfBodies.indexOf(b);if(i>=0)lfBodies.splice(i,1);const g=b.g;try{if(g.userData.av)rlRelease(g.userData.av)}catch(e){}if(g.parent){if(g.parent!==scene)try{rlDrvGlass(g.parent,false)}catch(e){}g.parent.remove(g)}if(b.c&&b.c.lfWreck&&b.c.lfWreck.body===g)b.c.lfWreck.body=null}
+// taking a car with a body in it: the body is pulled out and left by the driver's door
+function lfBodyEject(c){const w=c.lfWreck,g=w&&w.body;if(!g)return;w.body=null;const m=c.m,u=g.userData,y=m.rotation.y,cs=Math.cos(y),sn=Math.sin(y);try{if(u.av)rlRelease(u.av)}catch(e){}m.remove(g);try{rlDrvGlass(m,false)}catch(e){}
+ u.rlSeat=null;u.rlNpc=0;u.rlKeep=false;u.lfSit=0;g.scale.set(1,1,1);g.rotation.set(0,y,0);g.position.set(m.position.x-cs*2.1+sn*.3,.3,m.position.z+sn*2.1+cs*.3);collide(g.position,.45);
+ u.legL.rotation.x=u.legR.rotation.x=0;u.armL.rotation.x=u.armR.rotation.x=0;if(u.kneeL)u.kneeL.rotation.x=u.kneeR.rotation.x=0;scene.add(g);try{if(rlPeople.indexOf(g)<0)rlPeople.push(g);rlT=0}catch(e){}
+ u.lfF.deadT=T;u.dead=true;if(typeof rlKill==='function')rlKill(g,m.position,'eject');else g.rotation.x=-Math.PI/2;const b=lfBodies.find(q=>q.g===g);if(b){b.c=null;b.t=T}try{if(typeof auDoor==='function')auDoor()}catch(e){}}
+{const ch1=char;char=function(m){for(const b of lfBodies.slice())if(b.g.parent===m)lfBodyGone(b);ch1(m)}}
+function lfWreckTick(dt){for(let i=lfWrecks.length-1;i>=0;i--){const c=lfWrecks[i],w=c.lfWreck,m=c.m;
+  if(!w||c.dead||!m.parent){if(w&&w.body){const b=lfBodies.find(q=>q.g===w.body);if(b)lfBodyGone(b)}c.lfWreck=null;lfWrecks.splice(i,1);continue}
+  if(driving===c){lfBodyEject(c);c.lfWreck=null;lfWrecks.splice(i,1);continue}
+  w.t+=dt;if(w.done){if(!w.body){c.lfWreck=null;lfWrecks.splice(i,1)}continue}
+  const s=c.speed;m.rotation.y+=w.sw*dt*Math.min(1,Math.abs(s)/8);m.position.x+=-Math.sin(m.rotation.y)*s*dt;m.position.z+=-Math.cos(m.rotation.y)*s*dt;if(m.userData.wheels)for(const wh of m.userData.wheels)wh.rotation.x-=s*dt*2;
+  c.speed*=Math.pow(w.br,dt);let hitIt=collide(m.position,1.9);
+  if(!hitIt)for(const o of cars){if(o===c||o.vhT)continue;const dx=m.position.x-o.m.position.x,dz=m.position.z-o.m.position.z,d=Math.hypot(dx,dz);if(d<3.1&&d>.01){m.position.x+=dx/d*(3.1-d);m.position.z+=dz/d*(3.1-d);hitIt=true;break}}
+  if(hitIt){if(Math.abs(s)>4){try{sfx(.3,600,.6,m.position);burst(new THREE.Vector3(m.position.x,1,m.position.z),10,0xbbbbbb,5,.3,.5);if(Math.hypot(m.position.x-pos.x,m.position.z-pos.z)<25)shake=Math.max(shake,.2)}catch(e){}c.hp=Math.max(15,(c.hp||100)-Math.min(40,Math.abs(s)*2))}c.speed=0}
+  if(Math.abs(c.speed)<.5){c.speed=0;w.done=true}}}
+// what a driver does when shots go off nearby: floor it and duck, swerve, or stop and run for it
+function lfScreech(p){try{if(Math.hypot(p.x-pos.x,p.z-pos.z)<60)sfx(.45,1500,.3,p)}catch(e){}}
+function lfDrvDuck(m,sec){try{if(typeof rlDrv!=='undefined')for(const d of rlDrv)if(d.car===m){d.g.rotation.x=-.3;d.lfDuck=T+sec}}catch(e){}}
+function lfDrvBail(t,P){if(traffic.indexOf(t)<0||!lfDrvHas(t))return false;const m=t.m,lk=lfDrvLook(m),c=lfDrvFree(t,.7);if(!c)return false;try{rlDrvGlass(m,false)}catch(e){}
+ const y=m.rotation.y,cs=Math.cos(y),sn=Math.sin(y),g=makePerson(lk.c,0x333344,[0xf1c27d,0xc68642,0x8d5524][Math.floor(Math.random()*3)]);if(lk.ty){g.userData.rlType=lk.ty;g.userData.rlVar=lk.vr}
+ g.position.set(m.position.x-cs*2.2,.3,m.position.z+sn*2.2);collide(g.position,.45);scene.add(g);const d=new THREE.Vector3(g.position.x-P.x,0,g.position.z-P.z);if(d.lengthSq()<.01)d.set(1,0,0);d.normalize();fleers.push({g,d,t:9,w:0});
+ g.userData.lfF.k='fleer';g.userData.lfF.st='flee';g.userData.lfF.dur=9;lfFAct.push(g);lfVoice(g,'scream');lfScreech(m.position);try{if(typeof auDoor==='function'&&Math.hypot(m.position.x-pos.x,m.position.z-pos.z)<30)auDoor()}catch(e){}return true}
+function lfDrvReact(t,P,d,force){const r=force||Math.random(),m=t.m;t.lfHeard=T;if(!t.lfSpd0)t.lfSpd0=t.spd;
+ if(r<.5||(d>24&&!force)){t.lfScared=true;t.lfRe='floor';t.spd=Math.min(24,t.lfSpd0*1.9);lfDrvDuck(m,3);lfScreech(m.position)}
+ else if(r<.78){t.lfScared=true;t.lfRe='swerve';t.lfSw=T+2.4;t.lfSwS=Math.random()<.5?1:-1;t.spd=Math.min(20,t.lfSpd0*1.5);lfDrvDuck(m,2.4);lfScreech(m.position);try{if(d<40)beep(415,.5,.06)}catch(e){}}
+ else{t.lfRe='bail';lfDrvBail(t,P)}}
+function lfDrvHear(P,R,byPlayer){let n=0;for(const t of traffic){if(t.dead||t.lfNoDrv)continue;const p=t.m.position,dx=p.x-P.x,dz=p.z-P.z;if(dx*dx+dz*dz>R*R)continue;if(t.lfCop)continue;if(t.lfHeard&&T-t.lfHeard<14)continue;if(n++>=4)break;lfDrvReact(t,P,Math.hypot(dx,dz))}
+ try{if(typeof rlDrv!=='undefined')for(const d of rlDrv){const m=d.car;if(m&&!d.lfDuck&&Math.hypot(m.position.x-P.x,m.position.z-P.z)<R){d.g.rotation.x=-.3;d.lfDuck=T+2.5}}}catch(e){}}
+{const pt1=placeTraffic;placeTraffic=function(t){pt1(t);if(t.lfSw>T){const q=t.lfSw-T,k=Math.min(1,q/.5)*Math.min(1,(2.4-q)/.25),a=Math.sin(q*5.2)*t.lfSwS*k,m=t.m;if(t.alongX)m.position.z+=a*1.6;else m.position.x+=a*1.6;m.rotation.y+=Math.cos(q*5.2)*.3*k*t.lfSwS*(t.alongX?t.dir:-t.dir)}}}
+// --- the law hears gunfire: any cop in earshot of the player's shots comes after you, soldiers go on alert and return fire
+function lfLawHear(P,byPlayer){if(!byPlayer||state!=='play')return;let law=false;const near=(p,r)=>{const dx=p.x-P.x,dz=p.z-P.z;return dx*dx+dz*dz<r*r};
+ for(const s of shooters){if(s.dead||!s.g)continue;if(s.kind==='cop'){if(near(s.g.position,50))law=true}else if(s.kind==='army'&&near(s.g.position,75)){try{if(ldAlert<20)ldAlert=25}catch(e){}if(wantedScore<3)wantedScore=3}}
+ for(let i=lfCops.length-1;i>=0;i--){const c=lfCops[i];if(near(c.g.position,50)){law=true;lfCopHot(c)}}
+ for(const pc of police)if(!pc.dead&&!pc.gone&&near(pc.m.position,50))law=true;for(const t of traffic)if(t.lfCop&&!t.dead&&near(t.m.position,45))law=true;
+ if(law&&wantedScore<1.05)wantedScore=1.05}
+// one event per shot, then radius queries
+function lfShot(P,byPlayer,R){if(byPlayer){if(T-lfShotT<.14)return;lfShotT=T}else{if(T-lfNpcShotT<.5)return;lfNpcShotT=T;lfThreat(P,R,'npc')}
+ lfFolkHear(P,R,byPlayer);lfDrvHear(P,R,byPlayer);lfLawHear(P,byPlayer);if(byPlayer)try{msFareShot()}catch(e){}}
+{const es1=enemyShoot;enemyShoot=function(s){es1(s);try{if(s&&s.g)lfShot(s.g.position,false,26)}catch(e){}}}
+function lfBoom(p){try{for(const g of lfFolk.slice())if(lfFOk(g)&&g.position.distanceTo(p)<8)lfFolkHit(g,99,p,'boom');
+  for(const t of traffic.slice())if(!t.dead&&t.hp>0&&t.m.position.distanceTo(p)<6.5)lfDrvShot(t,p);
+  if(Math.hypot(p.x-pos.x,p.z-pos.z)<120){lfFolkHear(p,38,false);lfDrvHear(p,34,false)}}catch(e){}}
+// run people over (street peds and gunmen are already handled by the base game)
+function lfRunOver(dt){const c=driving;if(!c||state!=='play'||!c.m)return;const s=Math.abs(c.speed||0);if(s<=9)return;const m=c.m.position;
+ lfFNearT-=dt;if(lfFNearT<=0){lfFNearT=.3;lfFNear.length=0;for(const g of lfFolk)if(lfFOk(g)&&Math.abs(g.position.x-m.x)<45&&Math.abs(g.position.z-m.z)<45)lfFNear.push(g)}
+ for(const g of lfFNear){const f=g.userData.lfF;if(!f||f.dead)continue;const dx=g.position.x-m.x,dz=g.position.z-m.z;if(dx*dx+dz*dz<6.25&&Math.abs(g.position.y-m.y)<2.5&&lfFOk(g)){lfFolkHit(g,99,m,'car',s);shake=Math.max(shake,.3);sfx(.2,300,.6)}}}
+// pointing a gun at someone (lock-on held on them for a moment)
+function lfAimTick(dt){const o=lockObj;if(!o||driving||state!=='play'){lfAimO=null;return}if(o!==lfAimO){lfAimO=o;lfAimT=0}const was=lfAimT;lfAimT+=dt;if(was>=.45||lfAimT<.45)return;
+ if(o.userData&&o.userData.lfF){const g=o;if(!lfFOk(g))return;const d=Math.hypot(g.position.x-pos.x,g.position.z-pos.z);if(d>16)return;const k=lfFKind(g);
+  if(k==='in'){try{cpAimAt(g)}catch(e){}}else if(k==='beat'){const c=lfCops.find(q=>q.g===g),s=c&&lfCopHot(c);if(s){lockObj=s;lfAimO=s;wantedScore=Math.max(wantedScore,1.05)}}else lfFolkScare(g,pos,'aim',true)}
+ else if(o.lfDrvOf){const e=o.lfDrvOf;if(traffic.indexOf(e)>=0&&!e.lfCop&&lfDrvHas(e)&&Math.hypot(e.m.position.x-pos.x,e.m.position.z-pos.z)<24&&!(e.lfHeard&&T-e.lfHeard<14))lfDrvReact(e,pos,10,Math.random()<.5?.9:.2)}
+ else if(o.g&&o.kind&&!o.dead){const d=Math.hypot(o.g.position.x-pos.x,o.g.position.z-pos.z);if(o.kind==='cop'&&d<24)wantedScore=Math.max(wantedScore,1.05);else if(o.kind==='army'&&d<40){try{if(ldAlert<20)ldAlert=25}catch(e){}}}}
+// housekeeping once a second: tag gunmen made by other modules, forget people who left the game, clear old bodies, let islanders and bystanders come back later, calm drivers down
+function lfFolkSlow(){for(const s of shooters)if(s.g&&!s.g.userData.lfSh)s.g.userData.lfSh=s;
+ for(let i=lfFolk.length-1;i>=0;i--){const g=lfFolk[i],u=g.userData,f=u.lfF;if(!f){lfFolk.splice(i,1);continue}
+  if(!g.parent){if(!u.rlSeat&&!u.rlMe&&++f.gone>30){lfFolk.splice(i,1);u.lfF=null}continue}f.gone=0;if(!f.dead||u.rlSeat)continue;
+  const d=Math.hypot(g.position.x-pos.x,g.position.z-pos.z),age=T-f.deadT,k=f.k;
+  if(k==='isle'||k==='static'){if(age>90&&d>110){f.dead=false;u.dead=false;f.hp=1;try{rlRevive(g)}catch(e){}g.rotation.x=0}}
+  else if(k==='in'||k==='crew'||k==='mug'){}// their own modules clear them (rooms revive on a later visit)
+  else if((age>30&&d>45)||age>80){const b=lfBodies.find(q=>q.g===g);if(b)lfBodyGone(b);else g.parent.remove(g)}}
+ for(const t of traffic)if(t.lfScared&&t.lfHeard&&T-t.lfHeard>12&&!(t.hp<100)){t.lfScared=false;t.lfRe='';if(t.lfSpd0){t.spd=t.lfSpd0;t.lfSpd0=0}}
+ try{if(typeof rlDrv!=='undefined')for(const d of rlDrv)if(d.lfDuck&&T>d.lfDuck){d.lfDuck=0;if(d.car)d.g.rotation.x=0}}catch(e){}
+ for(const b of lfBodies.slice())if(b.c&&b.g.parent&&T-b.t>60&&Math.hypot(b.c.m.position.x-pos.x,b.c.m.position.z-pos.z)>130)lfBodyGone(b)}
+function lfMortalTick(dt){lfFolkTick(dt);lfWreckTick(dt);if(state==='play'){lfRunOver(dt);lfAimTick(dt)}lfFSlowT-=dt;if(lfFSlowT<=0){lfFSlowT=1;lfFolkSlow()}}
 // --- master tick
 MODS.push(function(dt){try{
   if(lfWantIntro&&state==='play'){lfWantIntro=false;lfIntroDone=true;lfIntroStart(false)}
   else if(!lfIntroDone&&lfPrevState==='ready'&&state==='play'){lfIntroDone=true;lfIntroStart(false)}lfPrevState=state;
-  lfBubTick(dt);lfTrafficTick(dt);lfAmbTick(dt);
+  lfBubTick(dt);lfTrafficTick(dt);lfAmbTick(dt);lfMortalTick(dt);
   if(state==='play'){lfPedTick(dt);lfCallTick(dt);lfCopTick(dt)}
  }catch(e){if(lfErr++<3)console.log('life error',e&&e.stack||e)}});
 

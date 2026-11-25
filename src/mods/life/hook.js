@@ -13,3 +13,6 @@ window.__lf.mugSt=()=>cpMug?{stage:cpMug.lfStage?+cpMug.lfStage.t.toFixed(1):nul
 window.__lf.pers=(i,pr,d,o)=>{const q=peds[i],fx=-Math.sin(camYaw),fz=-Math.cos(camYaw),rx=Math.cos(camYaw),rz=-Math.sin(camYaw);q.userData.dead=false;q.userData.lfP=pr;q.position.set(pos.x+fx*(d||6)+rx*(o||0),.3,pos.z+fz*(d||6)+rz*(o||0));lfReact(q,pos,d||6,'shot');return q.userData.lf&&q.userData.lf.st};
 window.__lf.who=()=>lfSmart.filter(p=>Math.hypot(p.position.x-pos.x,p.position.z-pos.z)<40).map(p=>[peds.indexOf(p),p.userData.lf&&p.userData.lf.st,p.userData.lfClip||'',p.userData.rlGst?p.userData.rlGst.n:'',!!p.userData.av]);
 window.__lf.god=()=>{hp=1e6};
+// everyone-is-mortal helpers: who is registered, shoot near / at people, kill a car's driver
+window.__lf.folk=()=>({n:lfFolk.length,act:lfFAct.length,kinds:lfFolk.filter(lfFOk).reduce((o,g)=>{const k=lfFKind(g);o[k]=(o[k]||0)+1;return o},{}),wrecks:lfWrecks.length,bodies:lfBodies.length,drv:lfDrvN});
+window.__lf.shot=(x,z,mine)=>lfShot(new THREE.Vector3(x===undefined?pos.x:x,0,z===undefined?pos.z:z),mine!==false,36);window.__lf.drvKill=i=>lfDrvShot(traffic[i||0],pos);window.__lf.hitFolk=(i,d)=>lfFolkHit(lfFolk.filter(lfFOk)[i||0],d||9,pos,'shot');
