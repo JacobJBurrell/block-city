@@ -1,7 +1,7 @@
 // ---------- music module (mu*): real music from YouTube on the phone and the car radio ----------
 // Uses only the official YouTube IFrame Player API. Nothing is downloaded or proxied.
 // Search needs a YouTube Data API v3 key (restricted by HTTP referrer). Paste it between the quotes:
-const muCfg={ytKey:''};
+const muCfg={ytKey:'AIzaSyDdrwXbGLrhej0o9C-6csbtL-T6chdvMGU'};
 // genre stations: official "YouTube Music" playlists, first id is used, the others are fallbacks
 const muST=[
  {id:'hiphop',n:'Hip-Hop',b:'HIP',c:'#ff9f0a',L:['RDCLAK5uy_lBGRuQnsG37Akr1CY4SxL0VWFbPrbO4gs','RDCLAK5uy_mpx6f-Md6iPbWSaizatzQIHfcF33fmT7E','RDCLAK5uy_kjWs8kYE7G6CkEijcEvsO9MVdE5doD3uY']},

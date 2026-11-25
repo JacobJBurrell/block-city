@@ -1,4 +1,46 @@
 // ---------- vehicles: motorcycles, helicopters, boats, vehicle damage, headlights ----------
+// ----- deferred building: far scenery (airport, army base, hills, marina, islands) is queued with vhLater and built in time slices
+// after the title screen is up, so PLAY is usable sooner. vhLater(chain,name,box,fn): box=[x0,z0,x1,z1] is where the job builds
+// (null = nowhere in particular); fn may be a generator function, each yield being a safe place to pause. Jobs of one chain run in
+// the order they were queued. Every frame: any job within vhLaterR m of the player is finished at once (teleports, spawning far
+// away, fast vehicles), then the nearest pending chain (to the chosen spawn on the title screen) gets a few ms. vhLaterAll() builds
+// everything now. When the queue is empty the map's static layer is redrawn so the new buildings show on it.
+const vhJobs=[],vhLaterLog=[],vhLaterR=100;let vhLaterAt=0,vhLaterN=0,vhLaterErr=0,vhJobCur=null;
+function vhLater(chain,name,box,fn){vhJobs.push({chain,name,box,fn,it:null,done:false,ms:0,objs:[]});vhLaterAt=0}
+{const a0=scene.add;scene.add=function(){if(vhJobCur)for(const o of arguments)vhJobCur.objs.push(o);return a0.apply(this,arguments)}}
+function vhJobD(j,x,z){const b=j.box;if(!b)return 1e9;return Math.hypot(Math.max(b[0]-x,0,x-b[2]),Math.max(b[1]-z,0,z-b[3]))}
+// texture anisotropy of a finished job matches what gfx gave everything that existed at start; its meshes then queue for shader
+// warm-up, which runs one mesh at a time on the title screen and during the intro (three.js links each new program synchronously,
+// ~100 ms apiece), so far-away content does not stall a later gameplay frame; once playing, whatever is left compiles when first seen
+const vhWarmQ=[],vhWarmK=new Set(),vhWarmS={isScene:true,fog:scene.fog,environment:null,background:null,overrideMaterial:null,L:[],O:null,traverseVisible(f){for(const l of this.L)f(l)},traverse(f){f(this.O)}};let vhWarmMs=0;
+function vhWarm(j){const objs=j.objs;j.objs=[];if(!objs.length)return;try{const an=Math.min(8,renderer.capabilities.getMaxAnisotropy()),seen=new Set();
+  for(const r of objs)r.traverse(o=>{if(!o.material)return;const ms=Array.isArray(o.material)?o.material:[o.material];
+   const k=ms.map(m=>m.uuid).join()+(o.isInstancedMesh?'i':'')+(o.isSkinnedMesh?'s':'');if(!vhWarmK.has(k)){vhWarmK.add(k);vhWarmQ.push(o)}   // one mesh per material/kind is enough
+   for(const m of ms)for(const k of['map','emissiveMap']){const t=m[k];if(t&&!seen.has(t)){seen.add(t);if(t.anisotropy<an){t.anisotropy=an;t.needsUpdate=true}}}})}catch(e){console.log('vh warm',e)}}
+function vhWarmStep(until){if(!vhWarmQ.length)return;if(state!=='ready'&&state!=='lfintro'){vhWarmQ.length=0;return}const t0=performance.now();
+ try{vhWarmS.L.length=0;vhWarmS.fog=scene.fog;vhWarmS.environment=scene.environment;scene.traverseVisible(o=>{if(o.isLight)vhWarmS.L.push(o)});
+  do{const o=vhWarmQ.shift();if(!o.parent)continue;try{const mp=renderer.properties.get(Array.isArray(o.material)?o.material[0]:o.material);if(mp&&mp.currentProgram)continue}catch(e){}   // drawn already
+  vhWarmS.O=o;renderer.compile(vhWarmS,cam);const ms=Array.isArray(o.material)?o.material:[o.material];for(const m of ms)for(const k of['map','emissiveMap'])if(m[k])renderer.initTexture(m[k])}while(vhWarmQ.length&&performance.now()<until)}
+ catch(e){console.log('vh warm',e);vhWarmQ.length=0}vhWarmMs+=performance.now()-t0}
+function vhJobRun(j,until){const t0=performance.now();vhJobCur=j;
+ try{if(!j.it){const r=j.fn();if(r&&typeof r.next==='function')j.it=r;else j.done=true}
+  while(!j.done){if(j.it.next().done){j.done=true;break}if(performance.now()>until)break}}
+ catch(e){j.done=true;vhLaterErr++;console.error('deferred build "'+j.name+'" failed: '+(e&&e.message),e)}
+ vhJobCur=null;j.ms+=performance.now()-t0;if(j.done){vhLaterN++;vhWarm(j);vhLaterLog.push([j.name,Math.round(j.ms),Math.round(performance.now())])}return j.done}
+function vhForce(j){for(const q of vhJobs){if(q.done||q.chain!==j.chain)continue;vhJobRun(q,Infinity);if(q===j)break}}
+function vhLaterAll(){for(const j of vhJobs)if(!j.done)vhJobRun(j,Infinity);vhLaterTidy()}
+function vhLaterTidy(){for(let i=vhJobs.length-1;i>=0;i--)if(vhJobs[i].done)vhJobs.splice(i,1);
+ if(!vhJobs.length&&!vhLaterAt){vhLaterAt=performance.now();try{if(typeof mpBuildStatic==='function')mpBuildStatic()}catch(e){}}}
+// map icons for helicopters / boats a job added (the map module only lists the ones that existed at start)
+function vhIconsSince(nh,nb){try{for(const h of vhHelis.slice(nh))mpIcons.push({x:h.m.position.x,z:h.m.position.z,label:'Helipad',color:'#ffd23f',glyph:'H'});for(const b of vhBoats.slice(nb))mpIcons.push({obj:b.m,x:0,z:0,label:'Boat',color:'#7fd4ff',glyph:'B',ent:b})}catch(e){}}
+function vhLaterNear(x,z,r){let n=0;for(const j of vhJobs)if(!j.done&&vhJobD(j,x,z)<(r===undefined?vhLaterR:r)){vhForce(j);n++}if(n)vhLaterTidy();return n}
+MODS.push(function vhLaterTick(){if(!vhJobs.length){vhWarmStep(performance.now()+12);return}
+ vhLaterNear(pos.x,pos.z);
+ const calm=state!=='play',until=performance.now()+(calm?20:6),s=state==='ready'&&window.chSpawn?window.chSpawn:pos;
+ while(performance.now()<until){let best=null,bd=Infinity;const head={};
+  for(const j of vhJobs){if(j.done||head[j.chain])continue;head[j.chain]=1;const d=j.it?-1:vhJobD(j,s.x,s.z);if(d<bd){bd=d;best=j}}
+  if(!best)break;vhJobRun(best,until)}
+ vhLaterTidy();if(performance.now()<until)vhWarmStep(until)});
 const vhM={rotor:new THREE.MeshStandardMaterial({color:0x1c1e21,roughness:.6}),hull:new THREE.MeshPhysicalMaterial({color:0xf4f4ee,roughness:.25,clearcoat:1,clearcoatRoughness:.1}),deck:new THREE.MeshStandardMaterial({color:0x9a6b3f,roughness:.8})};
 function vhPaint(col){return new THREE.MeshPhysicalMaterial({color:col,metalness:.5,roughness:.3,clearcoat:1,clearcoatRoughness:.06})}
 function vhMesh(par,geo,mat,sh){const m=new THREE.Mesh(geo,mat);m.castShadow=!!sh;par.add(m);return m}
@@ -62,13 +104,13 @@ addEventListener('keyup',e=>{vhK[e.code]=0},true);addEventListener('blur',()=>{f
 addEventListener('touchstart',e=>{for(const t of e.changedTouches||[])if(t.pt!=='mouse'&&t.pt!=='key'){vhKbFly=false;vhKbLast=false}},true);
 function vhKA(a,b){return (vhK[a]||vhK[b])?1:0}
 // small keycap hint shown the first time per session the player takes each kind of aircraft with a keyboard
-const vhHintSeen={};let vhKHT=0;const vhHintEl=document.createElement('div');vhHintEl.id='vhKeys';document.body.appendChild(vhHintEl);
+const vhHintSeen={};let vhKHT=0,vhHintK='';const vhHintEl=document.createElement('div');vhHintEl.id='vhKeys';document.body.appendChild(vhHintEl);
 {const st=document.createElement('style');st.textContent='#vhKeys{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 70px);transform:translateX(-50%);z-index:7;display:none;pointer-events:none;padding:8px 14px;border-radius:14px;background:rgba(14,16,24,.64);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);color:#fff;font:700 11px/1.9 system-ui,-apple-system,Segoe UI,sans-serif;text-align:center;white-space:nowrap;transition:opacity .6s;box-shadow:0 8px 22px rgba(0,0,0,.3)}#vhKeys kbd{display:inline-block;min-width:13px;padding:0 5px;margin:0 1px;border-radius:5px;background:rgba(255,255,255,.92);color:#15171d;font:800 10px/17px system-ui,sans-serif;box-shadow:0 2px 0 rgba(255,255,255,.35)}#vhKeys i{font-style:normal;opacity:.55;margin:0 7px}';document.head.appendChild(st)}
-function vhFlyHint(kind){if(vhHintSeen[kind]||!vhKbLast)return;vhHintSeen[kind]=1;const k=s=>'<kbd>'+s+'</kbd>',d='<i>&middot;</i>';
+function vhFlyHint(kind){if(vhHintSeen[kind]||!vhKbLast)return;vhHintSeen[kind]=1;vhHintK=kind;const k=s=>'<kbd>'+s+'</kbd>',d='<i>&middot;</i>';
  vhHintEl.innerHTML=kind==='heli'?(k('W')+k('A')+k('S')+k('D')+' fly'+d+k('Space')+' up'+d+k('C')+' down<br>hold '+k('E')+' to bail out'):
   (k('W')+k('S')+' throttle'+d+k('A')+k('D')+' bank'+d+k('&uarr;')+k('&darr;')+' pitch ('+k('&darr;')+' climbs)<br>'+k('&larr;')+k('&rarr;')+' rudder'+d+k('Space')+' brake'+d+'hold '+k('E')+' to bail out');
  vhHintEl.style.opacity='1';vhHintEl.style.display='block';vhKHT=9}
-function vhHintTick(dt){if(vhKHT<=0)return;vhKHT-=dt;if(!vhFlying())vhKHT=Math.min(vhKHT,.01);if(vhKHT<.7)vhHintEl.style.opacity='0';if(vhKHT<=0)vhHintEl.style.display='none'}
+function vhHintTick(dt){if(vhKHT<=0)return;vhKHT-=dt;if(!vhFlying()){if(vhKHT>4)delete vhHintSeen[vhHintK];vhKHT=Math.min(vhKHT,.01)}if(vhKHT<.7)vhHintEl.style.opacity='0';if(vhKHT<=0)vhHintEl.style.display='none'}
 // ----- vehicle health (GTA-style): hp stays 0..100 percent of each vehicle's own max points -----
 const vhBurning=[],vhDamaged=new Set();let vhCur=null,vhSmokeT=0,vhLastV=0,vhOwnBlow=null;
 function vhManaged(c){if(!c||c.dead)return false;const k=c.kind||(c.m&&c.m.userData.kind);return !(c.custom||k==='plane'||k==='jet')}
@@ -125,19 +167,23 @@ function vhDrive(dt,jx,jy){const c=driving,m=c.m,p=m.position;jumpQ=false;
   if(Math.abs(c.speed)>5&&Math.random()<.8){const w=m.localToWorld(new THREE.Vector3((Math.random()-.5)*1.4,.15,2.6));burst(w,1,0xffffff,2.5,.45,.7,.3)}}
  pos.copy(p);facing=m.rotation.y}
 // ----- airborne exit guard: a tap on CAR in the air does nothing; hold it ~0.8 s to bail out -----
-let vhHoldId=null,vhHoldT0=0,vhHoldKey=false,vhBailOK=false,vhHintT=-9;
+// The hold only counts when the press began while already flying this aircraft (so the press that got you in can never bail you out),
+// and the 0.8 s is counted only while airborne with the button or key still down.
+let vhHoldId=null,vhHoldT0=0,vhHoldKey=false,vhBailOK=false,vhHintT=-9,vhHoldVeh=null,vhHoldAcc=0,vhHoldLast=0;
 const vhRingEl=document.createElement('div');vhRingEl.style.cssText='position:fixed;pointer-events:none;border-radius:50%;z-index:30;display:none;-webkit-mask:radial-gradient(circle,transparent 58%,#000 60%);mask:radial-gradient(circle,transparent 58%,#000 60%)';document.body.appendChild(vhRingEl);
 function vhAirborne(c){if(!c||c.dead)return false;const m=c.m,k=c.kind||m.userData.kind;
- if(c.vhT==='heli')return m.position.y>(c.vhFloor||0)+.6;if(k==='plane'||k==='jet')return m.position.y>2;return false}
+ if(c.vhT==='heli')return m.position.y>(c.vhFloor||0)+.6;if(k==='plane'||k==='jet')return m.position.y>1.2||Math.abs(c.speed||0)>12;return false}
 function vhAirExitGuard(){if(!carQ||!driving||state!=='play'||!vhAirborne(driving))return false;if(vhBailOK){vhBailOK=false;return false}carQ=false;if(T-vhHintT>1.4){vhHintT=T;toast('Hold to bail out')}return true}
-addEventListener('touchstart',e=>{for(const t of e.changedTouches)if(hit($('car'),t)){vhHoldId=t.identifier;vhHoldT0=performance.now()}},{passive:true});
+addEventListener('touchstart',e=>{for(const t of e.changedTouches)if(hit($('car'),t)&&t.pt!=='key'){vhHoldId=t.identifier;vhHoldT0=performance.now();vhHoldVeh=driving}},{passive:true});
 {const end=e=>{for(const t of e.changedTouches)if(t.identifier===vhHoldId)vhHoldId=null;if(!e.touches||!e.touches.length)vhHoldId=null};addEventListener('touchend',end);addEventListener('touchcancel',end)}
-addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((k==='e'||k==='enter')&&!e.repeat){vhHoldKey=true;vhHoldT0=performance.now()}});addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='e'||k==='enter')vhHoldKey=false});
-function vhGuardTick(){const c=driving,air=state==='play'&&vhAirborne(c),holding=vhHoldId!==null||vhHoldKey;
- if(air&&holding){const f=Math.min(1,(performance.now()-vhHoldT0)/800);const r=$('car').getBoundingClientRect(),pad=8;
+addEventListener('keydown',e=>{if(vhKeyTxt(e))return;const k=(e.key||'').toLowerCase();if((k==='e'||k==='enter')&&!e.repeat){vhHoldKey=true;vhHoldT0=performance.now();vhHoldVeh=driving}});addEventListener('keyup',e=>{const k=(e.key||'').toLowerCase();if(k==='e'||k==='enter')vhHoldKey=false});
+addEventListener('blur',()=>{vhHoldKey=false;vhHoldId=null});
+function vhGuardTick(){const c=driving,air=state==='play'&&vhAirborne(c),holding=(vhHoldId!==null||vhHoldKey)&&vhHoldVeh===c,now=performance.now(),el=Math.min(100,now-vhHoldLast);vhHoldLast=now;
+ if(!(air&&holding))vhHoldAcc=0;
+ if(air&&holding){vhHoldAcc+=el;const f=Math.min(1,vhHoldAcc/800);let r=$('car').getBoundingClientRect();const pad=8;if(!r.width)r={left:innerWidth/2-22,top:innerHeight*.58,width:44,height:44};
   vhRingEl.style.display='block';vhRingEl.style.left=(r.left-pad)+'px';vhRingEl.style.top=(r.top-pad)+'px';vhRingEl.style.width=(r.width+pad*2)+'px';vhRingEl.style.height=(r.height+pad*2)+'px';
   vhRingEl.style.background='conic-gradient(#ffd23f '+(f*360)+'deg, rgba(255,255,255,.18) 0deg)';
-  if(f>=1){vhHoldId=null;vhHoldKey=false;vhBailOK=true;carQ=true;vhRingEl.style.display='none'}}
+  if(f>=1){vhHoldId=null;vhHoldKey=false;vhHoldAcc=0;vhBailOK=true;carQ=true;vhRingEl.style.display='none'}}
  else vhRingEl.style.display='none';
  if(!air)vhBailOK=false;
  vhAirExitGuard();

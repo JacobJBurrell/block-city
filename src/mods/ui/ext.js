@@ -159,7 +159,7 @@ addEventListener('touchmove',e=>{for(const t of e.changedTouches)if(t.pt==='mous
 addEventListener('wheel',e=>{if(uiOpen||state!=='play'||(typeof mpOpen!=='undefined'&&mpOpen))return;const t=e.target;if(t&&t.closest&&t.closest('#uiSet,#chOv,#mpWrap,#stPhone,.st-p,#msMenu,#uiTitle'))return;
  const d=e.deltaY*(e.deltaMode===1?33:(e.deltaMode===2?400:1));if(d)uiZoomBy(Math.exp(uiClamp(d,-240,240)*.0011))},{passive:true});
 let uiEsyn=null;
-function uiCarTouch(down){const el=$('car'),r=el.getBoundingClientRect();if(!r.width){if(down)carQ=true;return}const t={identifier:'kbE',pt:'key',clientX:r.left+r.width/2,clientY:r.top+r.height/2,pageX:0,pageY:0,target:el};
+function uiCarTouch(down){const el=$('car'),r=el.getBoundingClientRect();if(down&&!r.width){carQ=true;return}const t={identifier:'kbE',pt:'key',clientX:r.left+r.width/2,clientY:r.top+r.height/2,pageX:0,pageY:0,target:el};
  if(down){uiEsyn=t}else{if(!uiEsyn)return;uiEsyn=null}const ev=new Event(down?'touchstart':'touchend',{bubbles:true,cancelable:true});ev.inSyn=true;ev.changedTouches=[t];ev.touches=down?[t]:[];ev.targetTouches=ev.touches;el.dispatchEvent(ev)}
 addEventListener('keydown',e=>{const k=e.key,lk=k.toLowerCase();if(e.target&&e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;uiMouse=true;if(e.repeat&&k!=='i'&&k!=='o')return;
  if(state==='ready'&&(lk==='enter'))return;

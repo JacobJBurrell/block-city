@@ -114,23 +114,24 @@ wdInst([wdCyl(.09,.09,3.5,6,0x2b2d30,0,1.75,.7),wdBox(.1,.1,.8,0x2b2d30,0,3.35,.
 {const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(wdDec.p,3));g.setAttribute('color',new THREE.Float32BufferAttribute(wdDec.c,3));const nn=new Float32Array(wdDec.p.length);for(let i=1;i<nn.length;i+=3)nn[i]=1;g.setAttribute('normal',new THREE.BufferAttribute(nn,3));
  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));m.receiveShadow=true;m.frustumCulled=false;scene.add(m);wdDraws++}
 // ---- beach: palms, umbrellas, lifeguard towers, pier, animated water ----
+// the palms, umbrellas, towers and pier below are built later (vhLater, see vehicles/mod.js); wdPierH and the pier collision stay immediate
 const wdPZ=roadCenter(5),wdPX0=HALF+24,wdPX1=HALF+34,wdPX2=HALF+100,wdDY=1.7;
 function wdPierH(x,z){if(x<wdPX0||x>wdPX2||Math.abs(z-wdPZ)>(x>wdPX2-14?8:4.5))return -1;return x<wdPX1?wdDY*(x-wdPX0)/(wdPX1-wdPX0):wdDY}
-{const pp=[];let px=0,py=0;for(let k=0;k<6;k++){const t=.04+k*.05;pp.push(wdCyl(.15-.012*k,.18-.012*k,1.4,6,k%2?0x8a6b45:0x7a5c3a,px+Math.sin(t)*.62,py+.62,0,0,0,-t));px+=Math.sin(t)*1.25;py+=Math.cos(t)*1.25}
+vhLater('world-beach','Beach palms',[HALF-2,-HALF-12,wdPX2+12,HALF+12],function(){const pp=[];let px=0,py=0;for(let k=0;k<6;k++){const t=.04+k*.05;pp.push(wdCyl(.15-.012*k,.18-.012*k,1.4,6,k%2?0x8a6b45:0x7a5c3a,px+Math.sin(t)*.62,py+.62,0,0,0,-t));px+=Math.sin(t)*1.25;py+=Math.cos(t)*1.25}
  for(let k=0;k<8;k++){const a=k*Math.PI/4+.2,g1=new THREE.BoxGeometry(.6,.05,1.8).toNonIndexed(),g2=new THREE.BoxGeometry(.4,.05,1.8).toNonIndexed();g1.translate(0,0,.9);g1.rotateX(.1+(k%2)*.18);g2.translate(0,0,.9);g2.rotateX(.85);g2.translate(0,-.2-(k%2)*.3,1.72);g1.rotateY(a);g2.rotateY(a);pp.push(wdG(g1,0x1f6a2a,px,py,0),wdG(g2,0x2b8038,px,py,0))}
  pp.push(wdSph(.17,0x4a3520,px+.18,py-.18,.1),wdSph(.17,0x4a3520,px-.12,py-.2,-.15),wdSph(.17,0x4a3520,px,py-.2,.2));
  const arr=[],roadZ=z=>{for(let j=0;j<=N;j++)if(Math.abs(z-roadCenter(j))<10)return true;return false};
  for(let z=-HALF+6;z<HALF-4;z+=7+wdR()*5){const back=wdR()<.55,x=back?HALF+3+wdR()*3.5:HALF+25+wdR()*5;if((back&&roadZ(z))||Math.abs(z-wdPZ)<8)continue;arr.push([x,.02,z,wdR()*6.28,.9+wdR()*.45]);solids.push({minX:x-.3,maxX:x+.3,minZ:z-.3,maxZ:z+.3,h:3})}
- wdInst(pp,arr,{shadow:1})}
+ wdInst(pp,arr,{shadow:1})});
 const wdTowers=[wdPZ-82,wdPZ+72,wdPZ+190];
-{const cols=[0xff4d4d,0xffd23f,0x35b0ff,0xff8a2a,0x3ddc84,0xff6fb5,0xffffff],arr=[];
+vhLater('world-beach','Beach umbrellas and lifeguard towers',[HALF-2,-HALF-12,wdPX2+12,HALF+12],function(){const cols=[0xff4d4d,0xffd23f,0x35b0ff,0xff8a2a,0x3ddc84,0xff6fb5,0xffffff],arr=[];
  for(let z=-HALF+8;z<HALF-6;z+=6+wdR()*6){const x=HALF+30.5+wdR()*8.5;if(Math.abs(z-wdPZ)<7.5||wdTowers.some(t=>Math.abs(z-t)<6&&x<HALF+36))continue;arr.push([x,.02,z,wdR()*6.28,.9+wdR()*.3,0,cols[Math.floor(wdR()*cols.length)]])}
  arr.forEach(a=>a[5]=a[4]);
  wdInst([wdCyl(.04,.04,2.3,5,0xf2f2f2,0,1.15,0),wdG(new THREE.ConeGeometry(1.55,.55,8),0xffffff,0,2.45,0),wdBox(.85,.04,1.8,0xffffff,-.95,.03,.5),wdBox(.85,.04,1.8,0xe8e8e8,.95,.03,.3)],arr,{shadow:1});
  const tw=wdTowers.map(z=>{solids.push({minX:HALF+29.4,maxX:HALF+32.6,minZ:z-1.6,maxZ:z+1.6,h:4});return [HALF+31,.02,z,wdFace(1,0)]});
  wdInst([wdBox(.15,2.2,.15,0xe8e8e8,-1.2,1.1,-1.2),wdBox(.15,2.2,.15,0xe8e8e8,1.2,1.1,-1.2),wdBox(.15,2.2,.15,0xe8e8e8,-1.2,1.1,1.2),wdBox(.15,2.2,.15,0xe8e8e8,1.2,1.1,1.2),wdBox(3,.12,3,0xd8d0c0,0,2.2,0),wdBox(2.2,1.6,1.8,0xf4f4f4,0,3.06,.45),wdBox(2.24,.32,1.84,0xd62828,0,2.48,.45),wdBox(1.5,.6,.06,0x6fa3c7,0,3.3,-.46),
-  wdBox(2.9,.12,2.7,0xd62828,0,3.98,.3,-.1),wdBox(1,.08,3.5,0xcfc6b4,0,1.1,-2.85,-.684),wdBox(.06,.8,.06,0xe8e8e8,-1.4,2.65,-1.4),wdBox(.06,.8,.06,0xe8e8e8,1.4,2.65,-1.4),wdBox(2.86,.06,.06,0xe8e8e8,0,3.05,-1.4),wdCyl(.03,.03,1.8,5,0x888888,1.25,4.9,1.3),wdBox(.55,.32,.03,0xffd23f,1.55,5.6,1.3)],tw,{shadow:1})}
-{const W=0x8b6b47,Dk=0x6a5036,L=wdPX2-wdPX1,mx=(wdPX1+wdPX2)/2,rl=Math.hypot(wdPX1-wdPX0,wdDY),ra=Math.atan2(wdDY,wdPX1-wdPX0),p=[wdBox(L,.2,9,W,mx,wdDY-.1,wdPZ),wdBox(rl+.3,.2,9,W,(wdPX0+wdPX1)/2,wdDY/2-.1,wdPZ,0,0,ra),wdBox(14,.2,16,W,wdPX2-7,wdDY-.11,wdPZ)];
+  wdBox(2.9,.12,2.7,0xd62828,0,3.98,.3,-.1),wdBox(1,.08,3.5,0xcfc6b4,0,1.1,-2.85,-.684),wdBox(.06,.8,.06,0xe8e8e8,-1.4,2.65,-1.4),wdBox(.06,.8,.06,0xe8e8e8,1.4,2.65,-1.4),wdBox(2.86,.06,.06,0xe8e8e8,0,3.05,-1.4),wdCyl(.03,.03,1.8,5,0x888888,1.25,4.9,1.3),wdBox(.55,.32,.03,0xffd23f,1.55,5.6,1.3)],tw,{shadow:1})});
+vhLater('world-beach','Pier',[HALF-2,-HALF-12,wdPX2+12,HALF+12],function(){const W=0x8b6b47,Dk=0x6a5036,L=wdPX2-wdPX1,mx=(wdPX1+wdPX2)/2,rl=Math.hypot(wdPX1-wdPX0,wdDY),ra=Math.atan2(wdDY,wdPX1-wdPX0),p=[wdBox(L,.2,9,W,mx,wdDY-.1,wdPZ),wdBox(rl+.3,.2,9,W,(wdPX0+wdPX1)/2,wdDY/2-.1,wdPZ,0,0,ra),wdBox(14,.2,16,W,wdPX2-7,wdDY-.11,wdPZ)];
  for(let x=wdPX1+1;x<wdPX2;x+=2)p.push(wdBox(.07,.02,x>wdPX2-14?16:9,Dk,x,wdDY+.006,wdPZ));
  for(const s of [-1,1]){p.push(wdBox(L-14,.09,.12,Dk,mx-7,wdDY+1.05,wdPZ+s*4.4),wdBox(L-14,.06,.08,Dk,mx-7,wdDY+.55,wdPZ+s*4.4),wdBox(rl,.09,.12,Dk,(wdPX0+wdPX1)/2,wdDY/2+1.05,wdPZ+s*4.4,0,0,ra),wdBox(14,.09,.12,Dk,wdPX2-7,wdDY+1.05,wdPZ+s*7.9),wdBox(.12,.09,3.5,Dk,wdPX2-14,wdDY+1.05,wdPZ+s*6.15));
   for(let x=wdPX1;x<=wdPX2-14;x+=3)p.push(wdBox(.12,1.1,.12,Dk,x,wdDY+.55,wdPZ+s*4.4));for(let x=wdPX2-14;x<=wdPX2;x+=3.5)p.push(wdBox(.12,1.1,.12,Dk,x,wdDY+.55,wdPZ+s*7.9));
@@ -139,7 +140,7 @@ const wdTowers=[wdPZ-82,wdPZ+72,wdPZ+190];
  for(let z=-7.9;z<=7.9;z+=3.95)p.push(wdBox(.12,1.1,.12,Dk,wdPX2,wdDY+.55,wdPZ+z));p.push(wdBox(.12,.09,16,Dk,wdPX2,wdDY+1.05,wdPZ),wdG(new THREE.ConeGeometry(5.4,1.9,4),0xc0392b,wdPX2-7,wdDY+3.95,wdPZ,0,Math.PI/4),wdBox(2.4,.1,.6,W,wdPX2-7,wdDY+.5,wdPZ),wdBox(.1,.5,.5,Dk,wdPX2-8,wdDY+.25,wdPZ),wdBox(.1,.5,.5,Dk,wdPX2-6,wdDY+.25,wdPZ));
  const lamps=[];for(let x=wdPX1+5,k=0;x<wdPX2-15;x+=11,k++){const z=wdPZ+(k%2?4.3:-4.3);p.push(wdBox(.14,3.3,.14,0x24272b,x,wdDY+1.65,z));lamps.push([x,wdDY+3.35,z])}
  lamps.push([wdPX2-7,wdDY+2.95,wdPZ]);
- const m=new THREE.Mesh(U.mergeBufferGeometries(p),wdMat);m.castShadow=true;m.receiveShadow=true;scene.add(m);wdDraws++;wdInst(new THREE.BoxGeometry(.55,.3,.55),lamps,{mat:lampMat,noRecv:1})}
+ const m=new THREE.Mesh(U.mergeBufferGeometries(p),wdMat);m.castShadow=true;m.receiveShadow=true;scene.add(m);wdDraws++;wdInst(new THREE.BoxGeometry(.55,.3,.55),lamps,{mat:lampMat,noRecv:1})});
 const wdCollide0=collide;
 collide=function(p,r,maxH){const ox=p.x,res=wdCollide0(p,r,maxH);if(ox>HALF+46&&ox<wdPX2+3&&wdPierH(Math.min(ox,wdPX2),p.z)>=0){const hw=(ox>wdPX2-13.5?8:4.5)-.6;p.x=Math.min(ox,wdPX2-.6);p.z=Math.max(wdPZ-hw,Math.min(wdPZ+hw,p.z))}return res};
 const wdOldSea=scene.children.find(o=>o.isMesh&&o.geometry&&o.geometry.parameters&&o.geometry.parameters.width===700);if(wdOldSea)wdOldSea.visible=false;
