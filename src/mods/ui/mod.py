@@ -12,6 +12,12 @@ rep("if(driving&&!look.id){const target=driving.m.rotation.y;","if(driving&&!loo
 rep("dayT=(dayT+dt/1200)%1","dayT=(dayT+dt/(60*(uiS.day||20)))%1")
 rep("cam.position.lerp(new THREE.Vector3(cx,Math.max(1,cy),cz),Math.min(1,10*dt));cam.lookAt(pos.x,pos.y+h,pos.z);","const uiOx=uiShift&&!driving?Math.cos(camYaw)*1.6:0,uiOz=uiShift&&!driving?-Math.sin(camYaw)*1.6:0;cam.position.lerp(new THREE.Vector3(cx+uiOx,Math.max(1,cy),cz+uiOz),Math.min(1,10*dt));cam.lookAt(pos.x+uiOx,pos.y+h,pos.z+uiOz);")
 rep("// ---------- main loop ----------",open(os.path.join(MODS,'ui/ext.js'),encoding='utf-8').read()+"\n// ---------- main loop ----------")
+# design system (theme.js): tokens, HUD layout, title menu, settings tabs, panel styling; loads after ext.js so it can restyle and regroup it
+_th=open(os.path.join(MODS,'ui/theme.js'),encoding='utf-8').read()
+assert '`' not in _th and '${' not in _th and '</script>' not in _th, 'ui/theme.js: no backticks, ${ or </script>'
+rep("// ---------- main loop ----------",_th+"\n// ---------- main loop ----------")
+# declare UTF-8 so stars, arrows and the infinity sign render on hosts that send no charset header (local servers, file://)
+rep('<meta name="viewport"','<meta charset="utf-8"><meta name="viewport"')
 
 # boot screen: the page's first paint is a dark BLOCK CITY card in the new title's style instead of the old #msg title (which stays hidden while
 # the card exists); the card fades out on the first rendered frame, when the new title screen is already in place (see uiBoot in mod.js)
