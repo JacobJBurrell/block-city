@@ -202,11 +202,12 @@ function lfIntroStart(short){if(lfIntro)return;lfLabel='';if(!short){const c=win
 function lfIntroEnd(){const I=lfIntro;if(!I)return;lfIntro=null;scene.fog.near=I.fn;scene.fog.far=I.ff;cam.far=I.cf;cam.updateProjectionMatrix();if(state==='lfintro')state='play';document.body.classList.remove('lf-cine');for(const b of lfBars)b.style.height='0';lfCard.style.opacity=0;lfPrevState='play'}
 addEventListener('touchstart',e=>{if(lfIntro&&lfIntro.t>.5){lfIntro.t=Math.max(lfIntro.t,lfIntro.dur-.9)}},true);addEventListener('keydown',()=>{if(lfIntro&&lfIntro.t>.5)lfIntro.t=Math.max(lfIntro.t,lfIntro.dur-.9)});
 const lfCA=new THREE.Vector3(),lfCB=new THREE.Vector3(),lfCL=new THREE.Vector3();
-function lfShot(k,a,out){const c=Math.cos(a),s=Math.sin(a);if(k===0)out.set(pos.x+c*30,235,pos.z+s*30+70);else if(k===1)out.set(pos.x+c*95,100,pos.z+s*95);else if(k===2)out.set(pos.x+c*34,30,pos.z+s*34);else{const h=2,dist=9;out.set(pos.x+Math.sin(camYaw)*Math.cos(camPitch)*dist,Math.max(1,pos.y+h+Math.sin(camPitch)*dist),pos.z+Math.cos(camYaw)*Math.cos(camPitch)*dist)}return out}
+// camera positions for the intro shots (named lfCamShot: the gunfire handler further down is lfShot, and one name for both broke the intro camera)
+function lfCamShot(k,a,out){const c=Math.cos(a),s=Math.sin(a);if(k===0)out.set(pos.x+c*30,235,pos.z+s*30+70);else if(k===1)out.set(pos.x+c*95,100,pos.z+s*95);else if(k===2)out.set(pos.x+c*34,30,pos.z+s*34);else{const h=2,dist=9;out.set(pos.x+Math.sin(camYaw)*Math.cos(camPitch)*dist,Math.max(1,pos.y+h+Math.sin(camPitch)*dist),pos.z+Math.cos(camYaw)*Math.cos(camPitch)*dist)}return out}
 function lfCam(dt){
  if(lfIntro){const I=lfIntro;I.t+=dt;const t=I.t,D=I.dur;if(t>=D){lfIntroEnd();return}let k0,f;
   if(I.short){k0=2;f=t/D}else if(t<1.5){k0=0;f=-1}else if(t<3){k0=1;f=-1}else if(t<4.2){k0=2;f=-1}else{k0=2;f=(t-4.2)/(D-4.2)}
-  const drift=I.a+t*.07;if(f<0){lfShot(k0,drift,lfCA)}else{const e=f*f*(3-2*f);lfShot(k0,drift,lfCA);lfShot(3,0,lfCB);lfCA.lerp(lfCB,e)}
+  const drift=I.a+t*.07;if(f<0){lfCamShot(k0,drift,lfCA)}else{const e=f*f*(3-2*f);lfCamShot(k0,drift,lfCA);lfCamShot(3,0,lfCB);lfCA.lerp(lfCB,e)}
   const e2=f<0?0:f*f*(3-2*f);cam.position.copy(lfCA);lfCL.set(pos.x,pos.y+2*e2+ (1-e2)*1,pos.z);cam.lookAt(lfCL);
   cam.far=I.cf+(1400-I.cf)*(1-e2);scene.fog.near=I.fn+(380-I.fn)*(1-e2);scene.fog.far=I.ff+(1300-I.ff)*(1-e2);cam.fov=65-(f<0?[18,10,4][k0]:4*(1-e2));cam.updateProjectionMatrix();
   if(sky){sky.position.copy(cam.position);stars.position.copy(cam.position)}if(!I.short&&t>D-1.6){for(const b of lfBars)b.style.height='0';lfCard.style.opacity=0}return}

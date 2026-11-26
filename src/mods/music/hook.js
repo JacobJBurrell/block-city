@@ -7,4 +7,7 @@ window.__mu={s:()=>{const P=mu.P,r=muHost.getBoundingClientRect(),f=muHost.query
  drive:()=>{const c=cars.find(c=>!c.dead&&!c.custom&&!c.vhT&&!c.vhBike)||cars.find(c=>!c.dead);pos.set(c.m.position.x+2.5,.3,c.m.position.z);carQ=true;return 1},exit:()=>{carQ=true},
  call:on=>{stCallO=on?{id:'nana',dir:'in',st:'talk',t:0,lines:[],k:0,line:''}:null},reset:()=>{localStorage.removeItem('blockcity_music')},
  rect:sel=>{const e=document.querySelector(sel);if(!e)return null;const r=e.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]},failApi:()=>{mu.api=-1},
+ // intro music: state, choice, and test-only setters
+ intro:()=>({it:mu.it?{ph:mu.it.ph,g:+mu.it.g.toFixed(2),keep:mu.it.keep,syn:mu.it.syn,t:+mu.it.t.toFixed(1)}:null,ig:+mu.ig.toFixed(2),iDone:mu.iDone,icue:mu.icue,cfg:muIntroCfg(),name:muIName(),keep:!!muDB.ikeep,saved:JSON.parse(localStorage.getItem('blockcity_music')||'null'),synGain:typeof auRG!=='undefined'&&auRG?+auRG.gain.value.toFixed(2):null}),
+ iset:c=>muISet(c),isearch:q=>muISearch(q),ikeep:b=>{muDB.ikeep=!!b;muSave()},
  pl:()=>{const P=mu.P,L=P.getPlaylist()||[],v=(P.getVideoData()||{}).video_id;return {pid:P.getPlaylistId(),n:L.length,first:L[0],has:L.indexOf(v)>=0,idx:P.getPlaylistIndex()}}};
